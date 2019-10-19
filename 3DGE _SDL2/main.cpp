@@ -7,18 +7,25 @@
 //
 
 #include <iostream>
-#include <SDL2/SDL.h>
+#ifdef _WIN32
+	//define something for Windows (32-bit and 64-bit, this part is common)
+	#include <SDL.h>
+#elif __APPLE__
+	//define something for MacOS
+	#include <SDL2/SDL.h>
+#endif
 
-const int FRAMES_PER_SECOND = 20;
+const int FRAMES_PER_SECOND = 30;
 const int WIDTH = 800, HEIGHT = 600;
+
 
 int check_window(SDL_Window *window){
     if ( window == NULL )
     {
-        printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
+        printf( "Error creating window! SDL_Error: %s\n", SDL_GetError() );
         return 1;
     } else {
-        printf( "Window has been created(%dx%d)!\n", WIDTH, HEIGHT);
+        printf( "Created window(%dx%d)!\n", WIDTH, HEIGHT);
         return 0;
     }
 }
@@ -31,13 +38,16 @@ void Axis_XY(SDL_Renderer *renderer){
     SDL_RenderDrawLine(renderer, WIDTH/2, 0, WIDTH/2, HEIGHT);
     
     if(kw==0){
-        printf("Axises has been created!\n");
+        printf("Created axises!\n");
         kw=1;
     }
 }
 
 
-int main(int argc, const char *argv[])
+
+
+
+int main(int argc, char *argv[])
 {
     SDL_Init( SDL_INIT_VIDEO );
     
@@ -54,7 +64,7 @@ int main(int argc, const char *argv[])
     
     // Check that the window was successfully created
     if(check_window(window)==1){
-        return 0;
+        return 1;
     };
     
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
