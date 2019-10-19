@@ -16,7 +16,7 @@
 #endif
 
 const int FRAMES_PER_SECOND = 30;
-const int WIDTH = 800, HEIGHT = 600;
+int WIDTH = 800, HEIGHT = 600;
 
 
 int check_window(SDL_Window *window){
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
                               SDL_WINDOWPOS_UNDEFINED,
                               WIDTH,
                               HEIGHT,
-                              SDL_WINDOW_ALLOW_HIGHDPI
+                              SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE
                               );
     
     // Check that the window was successfully created
@@ -83,6 +83,9 @@ int main(int argc, char *argv[])
             }
         }
         start = SDL_GetTicks();
+        // Gets real size of the window(Fix for MacOS)
+        SDL_GetRendererOutputSize(renderer, &WIDTH, &HEIGHT);
+        
         //Background
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
