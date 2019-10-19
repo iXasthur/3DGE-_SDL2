@@ -7,8 +7,97 @@
 //
 
 #include <iostream>
+#include <SDL2/SDL.h>
 
-int main(int argc, const char * argv[]) {
-    
-    return 0;
+const int FRAMES_PER_SECOND = 20;
+const int WIDTH = 800, HEIGHT = 600;
+
+int check_window(SDL_Window *window){
+    if ( window == NULL )
+    {
+        printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
+        return 1;
+    } else {
+        printf( "Window has been created(%dx%d)!\n", WIDTH, HEIGHT);
+        return 0;
+    }
 }
+
+void Axis_XY(SDL_Renderer *renderer){
+    static int kw=0;
+    
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawLine(renderer, 0, HEIGHT/2, WIDTH, HEIGHT/2);
+    SDL_RenderDrawLine(renderer, WIDTH/2, 0, WIDTH/2, HEIGHT);
+    
+    if(kw==0){
+        printf("Axises has been created!\n");
+        kw=1;
+    }
+}
+
+
+int main(int argc, const char *argv[])
+{
+    SDL_Init( SDL_INIT_VIDEO );
+    
+    SDL_Window *window;
+    
+    window = SDL_CreateWindow(
+                              "^_^",
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              WIDTH,
+                              HEIGHT,
+                              SDL_WINDOW_ALLOW_HIGHDPI
+                              );
+    
+    // Check that the window was successfully created
+    if(check_window(window)==1){
+        return 0;
+    };
+    
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+    
+    // clear window
+    
+    Uint32 start;
+    SDL_Event windowEvent;
+    while ( true )
+    {
+        if ( SDL_PollEvent( &windowEvent ) )
+        {
+            if ( SDL_QUIT == windowEvent.type )
+            {
+                break;
+            }
+        }
+        start = SDL_GetTicks();
+        //Background
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        //Axises
+        Axis_XY(renderer);
+        
+        // Renders window
+        SDL_RenderPresent(renderer);
+        if (1000/FRAMES_PER_SECOND > SDL_GetTicks()-start) {
+            SDL_Delay(1000/FRAMES_PER_SECOND - (SDL_GetTicks()-start));
+        }
+    }
+    
+    
+    
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    
+    return EXIT_SUCCESS;
+}
+
+
+
+
+
+
