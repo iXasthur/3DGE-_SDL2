@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
             }
         }
         start = SDL_GetTicks();
-        // Gets real size of the window(Fix for MacOS)
+        // Gets real size of the window(Fix for MacOS/Resizing)
         SDL_GetRendererOutputSize(renderer, &WIDTH, &HEIGHT);
         
         //Background
