@@ -34,10 +34,15 @@ private:
 	struct Matrix4 {
 		float m[4][4] = { 0 };
 	};
+	
+	struct DrawList {
+		std::vector<Mesh> obj;
+	};
 
 	Mesh MESH_CUBE;
 
 	Matrix4 matProj;
+
 
 	const char title[4] = "^_^";
 	const int FRAMES_PER_SECOND = 30;
@@ -112,7 +117,8 @@ private:
 	void DrawSceneObjects(SDL_Renderer *renderer) {
 		Matrix4 matRotZ, matRotX;
 
-		float fTheta = 10;
+		static float fTheta = 0;
+		fTheta += 1/(float)FRAMES_PER_SECOND;
 
 		// Rotation Z
 		matRotZ.m[0][0] = cosf(fTheta);
@@ -249,7 +255,7 @@ private:
 									SDL_WINDOWPOS_UNDEFINED,
 									WIDTH,
 									HEIGHT,
-									SDL_WINDOW_ALLOW_HIGHDPI
+									SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE
 								 );
 
 		// Check that the window was successfully created
