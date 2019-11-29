@@ -280,6 +280,18 @@ private:
 			if (normal.x * (triTranslated.p[0].x - CameraPos.x) + 
 				normal.y * (triTranslated.p[0].y - CameraPos.y) + 
 				normal.z * (triTranslated.p[0].z - CameraPos.z) < 0.0f) {
+
+				// Illumination
+				vec3 LightDirection = { 0, 0, -1 };
+				float l = sqrtf(LightDirection.x * LightDirection.x + LightDirection.y * LightDirection.y + LightDirection.z * LightDirection.z);
+				LightDirection.x /= l;
+				LightDirection.y /= l;
+				LightDirection.z /= l;
+
+				// How similar is normal to light direction
+				float dp = normal.x * LightDirection.x + normal.y * LightDirection.y + normal.z * LightDirection.z;
+				SDL_SetRenderDrawColor(renderer, dp * 255.0f, dp * 255.0f, dp * 255.0f, 255.0f);
+
 				// 3D -> 2D
 				MultiplyVectorByMatrix(triTranslated.p[0], triProjected.p[0], matProj);
 				MultiplyVectorByMatrix(triTranslated.p[1], triProjected.p[1], matProj);
