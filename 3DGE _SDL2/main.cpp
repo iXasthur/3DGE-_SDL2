@@ -90,6 +90,136 @@ private:
 		}
 	}
 
+	vec3 Vector4_Add(vec3 &v1, vec3 &v2) {
+		return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
+	}
+
+	vec3 Vector4_Sub(vec3 &v1, vec3 &v2) {
+		return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
+	}
+
+	vec3 Vector4_Mul(vec3 &v1, float k) {
+		return { v1.x * k, v1.y * k, v1.z * k };
+	}
+
+	vec3 Vector4_Div(vec3 &v1, float k) {
+		return { v1.x / k, v1.y / k, v1.z / k };
+	}
+
+	float Vector4_DotProduct(vec3 &v1, vec3 &v2) {
+		return (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z);
+	}
+
+	float Vector4_Length(vec3 &v)
+	{
+		return sqrtf(Vector4_DotProduct(v, v));
+	}
+
+	vec3 Vector4_Normalize(vec3 &v) {
+		float l = Vector4_Length(v);
+		return { v.x / l, v.y / l, v.z / l };
+	}
+
+	vec3 Vector4_CrossProduct(vec3 &v1, vec3 &v2)
+	{
+		vec3 v;
+		v.x = v1.y * v2.z - v1.z * v2.y;
+		v.y = v1.z * v2.x - v1.x * v2.z;
+		v.z = v1.x * v2.y - v1.y * v2.x;
+		return v;
+	}
+
+	/*vec3 Matrix4_MultiplyVector(Matrix4 &m, vec3 &i) {
+		vec3 v;
+		v.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + i.w * m.m[3][0];
+		v.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + i.w * m.m[3][1];
+		v.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + i.w * m.m[3][2];
+		v.w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + i.w * m.m[3][3];
+		return v;
+	}*/
+
+	Matrix4 Matrix4_MakeIdentity() {
+		Matrix4 matrix;
+		matrix.m[0][0] = 1.0f;
+		matrix.m[1][1] = 1.0f;
+		matrix.m[2][2] = 1.0f;
+		matrix.m[3][3] = 1.0f;
+		return matrix;
+	}
+
+	Matrix4 Matrix4_MakeRotationX(float fAngleRad)
+	{
+		Matrix4 matrix;
+		matrix.m[0][0] = 1.0f;
+		matrix.m[1][1] = cosf(fAngleRad);
+		matrix.m[1][2] = sinf(fAngleRad);
+		matrix.m[2][1] = -sinf(fAngleRad);
+		matrix.m[2][2] = cosf(fAngleRad);
+		matrix.m[3][3] = 1.0f;
+		return matrix;
+	}
+
+	Matrix4 Matrix4_MakeRotationY(float fAngleRad)
+	{
+		Matrix4 matrix;
+		matrix.m[0][0] = cosf(fAngleRad);
+		matrix.m[0][2] = sinf(fAngleRad);
+		matrix.m[2][0] = -sinf(fAngleRad);
+		matrix.m[1][1] = 1.0f;
+		matrix.m[2][2] = cosf(fAngleRad);
+		matrix.m[3][3] = 1.0f;
+		return matrix;
+	}
+
+	Matrix4 Matrix4_MakeRotationZ(float fAngleRad)
+	{
+		Matrix4 matrix;
+		matrix.m[0][0] = cosf(fAngleRad);
+		matrix.m[0][1] = sinf(fAngleRad);
+		matrix.m[1][0] = -sinf(fAngleRad);
+		matrix.m[1][1] = cosf(fAngleRad);
+		matrix.m[2][2] = 1.0f;
+		matrix.m[3][3] = 1.0f;
+		return matrix;
+	}
+
+	Matrix4 Matrix4_MakeTranslation(float x, float y, float z)
+	{
+		Matrix4 matrix;
+		matrix.m[0][0] = 1.0f;
+		matrix.m[1][1] = 1.0f;
+		matrix.m[2][2] = 1.0f;
+		matrix.m[3][3] = 1.0f;
+		matrix.m[3][0] = x;
+		matrix.m[3][1] = y;
+		matrix.m[3][2] = z;
+		return matrix;
+	}
+
+	Matrix4 Matrix4_MakeProjection(float fFovDegrees, float fAspectRatio, float fNear, float fFar)
+	{
+		float fFovRad = 1.0f / tanf(fFovDegrees * 0.5f / 180.0f * 3.14159f);
+		Matrix4 matrix;
+		matrix.m[0][0] = fAspectRatio * fFovRad;
+		matrix.m[1][1] = fFovRad;
+		matrix.m[2][2] = fFar / (fFar - fNear);
+		matrix.m[3][2] = (-fFar * fNear) / (fFar - fNear);
+		matrix.m[2][3] = 1.0f;
+		matrix.m[3][3] = 0.0f;
+		return matrix;
+	}
+
+	Matrix4 Matrix_MultiplyMatrix(Matrix4 &m1, Matrix4 &m2)
+	{
+		Matrix4 matrix;
+		for (int c = 0; c < 4; c++) {
+			for (int r = 0; r < 4; r++) {
+				matrix.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][1] * m2.m[1][c] + m1.m[r][2] * m2.m[2][c] + m1.m[r][3] * m2.m[3][c];
+			}
+		}
+		return matrix;
+	}
+
 	void updateScreenAndCameraProperties(SDL_Renderer *renderer) {
 		// Gets real size of the window(Fix for MacOS/Resizing)
 		SDL_GetRendererOutputSize(renderer, &WIDTH, &HEIGHT);
@@ -222,20 +352,10 @@ private:
 		fTheta += 1/(float)FRAMES_PER_SECOND;
 
 		// Rotation Z
-		matRotZ.m[0][0] = cosf(fTheta);
-		matRotZ.m[0][1] = sinf(fTheta);
-		matRotZ.m[1][0] = -sinf(fTheta);
-		matRotZ.m[1][1] = cosf(fTheta);
-		matRotZ.m[2][2] = 1;
-		matRotZ.m[3][3] = 1;
+		matRotZ = Matrix4_MakeRotationZ(fTheta);
 
 		// Rotation X
-		matRotX.m[0][0] = 1;
-		matRotX.m[1][1] = cosf(fTheta * 0.5f);
-		matRotX.m[1][2] = sinf(fTheta * 0.5f);
-		matRotX.m[2][1] = -sinf(fTheta * 0.5f);
-		matRotX.m[2][2] = cosf(fTheta * 0.5f);
-		matRotX.m[3][3] = 1;
+		matRotX = Matrix4_MakeRotationX(fTheta);
 
 
 		for (Triangle tri: MESH_CUBE.polygons) {
