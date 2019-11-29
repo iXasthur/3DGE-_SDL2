@@ -27,6 +27,10 @@ private:
 		vec3 p[3];
 	};
 
+	struct Triangle2D {
+		SDL_Point p[3];
+	};
+
 	struct Mesh {
 		std::vector<Triangle> polygons;
 	};
@@ -42,6 +46,8 @@ private:
 	Mesh MESH_CUBE;
 
 	Matrix4 matProj;
+
+	vec3 CameraPos = { 0, 0, 0 };
 
 
 	const char title[4] = "^_^";
@@ -101,17 +107,112 @@ private:
 
 	}
 
-	void DrawTriangle(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, int x3, int y3) {
-		//SDL_RenderDrawLines
+	void DrawTriangle2D(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, int x3, int y3) {
 		const SDL_Point points[4] = {
 										{ x1,y1 },
 										{ x2,y2 },
 										{ x3,y3 },
 										{ x1,y1 }
-									}
-		;
+									};
 
 		SDL_RenderDrawLines(renderer, points, 4);
+	}
+
+	void DrawTopFlatTriangle(SDL_Renderer *renderer, SDL_Point *v)
+	{
+		/*
+		  0 ---------- 1
+			\	     /
+			 \      /
+			  \	   /
+			   \  /
+			    \/
+				 2
+		*/
+		float dx0 = (float)(v[0].x - v[2].x) / (float)(v[2].y - v[0].y);
+		float dx1 = (float)(v[1].x - v[2].x) / (float)(v[2].y - v[1].y);
+
+		float xOffset0 = v[2].x;
+		float xOffset1 = v[2].x;
+
+		for (int scanlineY = v[2].y; scanlineY >= v[0].y; scanlineY--)
+		{
+			SDL_RenderDrawLine(renderer, xOffset0, scanlineY, xOffset1, scanlineY);
+			xOffset0 += dx0;
+			xOffset1 += dx1;
+		}
+	}
+
+	void DrawBottomFlatTriangle(SDL_Renderer *renderer, SDL_Point *v)
+	{
+		/*
+		        0
+		        /\ 
+			   /  \
+		      /    \
+		     /      \
+			/        \
+		  1 ---------- 2
+		*/
+		float dx0 = (float)(v[1].x - v[0].x) / (float)(v[1].y - v[0].y);
+		float dx1 = (float)(v[2].x - v[0].x) / (float)(v[2].y - v[0].y);
+
+		float xOffset0 = v[0].x;
+		float xOffset1 = v[0].x;
+
+		for (int scanlineY = v[0].y; scanlineY <= v[1].y; scanlineY++)
+		{
+			SDL_RenderDrawLine(renderer, xOffset0, scanlineY, xOffset1, scanlineY);
+			xOffset0 += dx0;
+			xOffset1 += dx1;
+		}
+	}
+
+	void DrawFlatTriangle(SDL_Renderer *renderer, SDL_Point *v) {
+
+	}
+
+	void DrawFilledTriangle2D(SDL_Renderer *renderer, Triangle2D tr) {
+		// Points are Integers
+		// p[0] need to have lowest y among points
+		if (!(tr.p[0].y == tr.p[1].y == tr.p[2].y)) {
+			bool sorted = false;
+			while (!sorted)
+			{
+				sorted = true;
+				for (int i = 0; i < 2; i++) {
+					if (tr.p[i].y > tr.p[i + 1].y)
+					{
+						sorted = false;
+						SDL_Point buffPoint = tr.p[i];
+						tr.p[i] = tr.p[i + 1];
+						tr.p[i + 1] = buffPoint;
+					}
+				}
+			}
+
+
+			if (tr.p[1].y == tr.p[2].y) {
+				DrawBottomFlatTriangle(renderer, tr.p);
+			} else
+				if (tr.p[0].y == tr.p[1].y) {
+					DrawTopFlatTriangle(renderer, tr.p);
+				} else {
+					SDL_Point splitPoint;
+					splitPoint.x = tr.p[0].x + ((float)(tr.p[1].y - tr.p[0].y) / (float)(tr.p[2].y - tr.p[0].y)) * (tr.p[2].x - tr.p[0].x);
+					splitPoint.y = tr.p[1].y;
+					SDL_Point points[3];
+					points[0] = tr.p[0];
+					points[1] = tr.p[1];
+					points[2] = splitPoint;
+					DrawBottomFlatTriangle(renderer, points);
+					points[0] = tr.p[1];
+					points[1] = splitPoint;
+					points[2] = tr.p[2];
+					DrawTopFlatTriangle(renderer, points);
+				}
+			}
+		
 	}
 	
 	void DrawSceneObjects(SDL_Renderer *renderer) {
@@ -150,30 +251,62 @@ private:
 			MultiplyVectorByMatrix(triRotatedZ.p[1], triRotatedZX.p[1], matRotX);
 			MultiplyVectorByMatrix(triRotatedZ.p[2], triRotatedZX.p[2], matRotX);
 
+			// Offset into the screen
 			triTranslated = triRotatedZX;
 			triTranslated.p[0].z = triRotatedZX.p[0].z + 3.0f;
 			triTranslated.p[1].z = triRotatedZX.p[1].z + 3.0f;
 			triTranslated.p[2].z = triRotatedZX.p[2].z + 3.0f;
 
-			MultiplyVectorByMatrix(triTranslated.p[0], triProjected.p[0], matProj);
-			MultiplyVectorByMatrix(triTranslated.p[1], triProjected.p[1], matProj);
-			MultiplyVectorByMatrix(triTranslated.p[2], triProjected.p[2], matProj);
+			// Calculate normal
+			vec3 normal, line1, line2;
+			line1.x = triTranslated.p[1].x - triTranslated.p[0].x;
+			line1.y = triTranslated.p[1].y - triTranslated.p[0].y;
+			line1.z = triTranslated.p[1].z - triTranslated.p[0].z;
 
-			triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
-			triProjected.p[1].x += 1.0f; triProjected.p[1].y += 1.0f;
-			triProjected.p[2].x += 1.0f; triProjected.p[2].y += 1.0f;
+			line2.x = triTranslated.p[2].x - triTranslated.p[0].x;
+			line2.y = triTranslated.p[2].y - triTranslated.p[0].y;
+			line2.z = triTranslated.p[2].z - triTranslated.p[0].z;
 
-			triProjected.p[0].x *= 0.5f * WIDTH;
-			triProjected.p[0].y *= 0.5f * HEIGHT;
-			triProjected.p[1].x *= 0.5f * WIDTH;
-			triProjected.p[1].y *= 0.5f * HEIGHT;
-			triProjected.p[2].x *= 0.5f * WIDTH;
-			triProjected.p[2].y *= 0.5f * HEIGHT;
+			normal.x = line1.y * line2.z - line1.z * line2.y;
+			normal.y = line1.z * line2.x - line1.x * line2.z;
+			normal.z = line1.x * line2.y - line1.y * line2.x;
 
+			// Normalize normal
+			float l = sqrtf(normal.x* normal.x + normal.y* normal.y + normal.z*normal.z);
+			normal.x /= l;
+			normal.y /= l;
+			normal.z /= l;
 
-			DrawTriangle(renderer, triProjected.p[0].x, triProjected.p[0].y,
-								   triProjected.p[1].x, triProjected.p[1].y,
-								   triProjected.p[2].x, triProjected.p[2].y);
+			if (normal.x * (triTranslated.p[0].x - CameraPos.x) + 
+				normal.y * (triTranslated.p[0].y - CameraPos.y) + 
+				normal.z * (triTranslated.p[0].z - CameraPos.z) < 0.0f) {
+				// 3D -> 2D
+				MultiplyVectorByMatrix(triTranslated.p[0], triProjected.p[0], matProj);
+				MultiplyVectorByMatrix(triTranslated.p[1], triProjected.p[1], matProj);
+				MultiplyVectorByMatrix(triTranslated.p[2], triProjected.p[2], matProj);
+
+				triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
+				triProjected.p[1].x += 1.0f; triProjected.p[1].y += 1.0f;
+				triProjected.p[2].x += 1.0f; triProjected.p[2].y += 1.0f;
+
+				triProjected.p[0].x *= 0.5f * WIDTH;
+				triProjected.p[0].y *= 0.5f * HEIGHT;
+				triProjected.p[1].x *= 0.5f * WIDTH;
+				triProjected.p[1].y *= 0.5f * HEIGHT;
+				triProjected.p[2].x *= 0.5f * WIDTH;
+				triProjected.p[2].y *= 0.5f * HEIGHT;
+
+				SDL_Point points[3] = {
+								{ triProjected.p[0].x,triProjected.p[0].y },
+								{ triProjected.p[1].x,triProjected.p[1].y },
+								{ triProjected.p[2].x,triProjected.p[2].y }
+				};
+				Triangle2D tr = {points[0], points[1], points[2]};
+				/*DrawTriangle2D(renderer, triProjected.p[0].x, triProjected.p[0].y,
+					triProjected.p[1].x, triProjected.p[1].y,
+					triProjected.p[2].x, triProjected.p[2].y);*/
+				DrawFilledTriangle2D(renderer, tr);
+			}
 		}
 	}
 
