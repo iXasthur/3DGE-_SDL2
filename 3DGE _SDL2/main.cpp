@@ -781,6 +781,15 @@ private:
 							MainCamera.fYRotation += offset;
 							break;
 						}
+						case SDL_SCANCODE_R: {
+							printf("Tapped SDL_SCANCODE_R\n");
+							MainCamera.fXRotation = 0;
+							MainCamera.fYRotation = 0;
+							MainCamera.position.x = 0;
+							MainCamera.position.y = 2;
+							MainCamera.position.z = 2;
+							break;
+						}
 					}
 				}
 			}
