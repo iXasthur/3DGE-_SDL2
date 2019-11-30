@@ -45,13 +45,20 @@ private:
 	struct Matrix4 {
 		float m[4][4] = { 0 };
 	};
+
+	struct GEObject {
+		vec3 position = { 0, 0, 0 };
+		Mesh mesh;
+	};
 	
 	struct DrawList {
-		std::vector<Mesh> obj;
+		std::vector<GEObject> obj;
 	};
 
 	struct Camera {
 		vec3 position = { 0, 0, 0 };
+		vec3 lookDirection = { 0, 0, 1 };
+		float fYaw = 0;
 		float fFOV = 90.0f;
 		float fNear = 0.1f;
 		float fFar = 1000.0f;
@@ -61,7 +68,7 @@ private:
 	Matrix4 matProj;
 	Camera MainCamera;
 
-	bool DEBUG_DRAW_POLYGONS = false;
+	bool DEBUG_DRAW_POLYGONS = true;
 
 	const char title[4] = "^_^";
 	const int FRAMES_PER_SECOND = 30;
@@ -120,6 +127,119 @@ private:
 		v.y = v1.z * v2.x - v1.x * v2.z;
 		v.z = v1.x * v2.y - v1.y * v2.x;
 		return v;
+	}
+
+	vec3 Vector_IntersectPlane(vec3 &plane_p, vec3 &plane_n, vec3 &lineStart, vec3 &lineEnd)
+	{
+		plane_n = Vector3_Normalize(plane_n);
+		float plane_d = -Vector3_DotProduct(plane_n, plane_p);
+		float ad = Vector3_DotProduct(lineStart, plane_n);
+		float bd = Vector3_DotProduct(lineEnd, plane_n);
+		float t = (-plane_d - ad) / (bd - ad);
+		vec3 lineStartToEnd = Vector3_Sub(lineEnd, lineStart);
+		vec3 lineToIntersect = Vector3_Mul(lineStartToEnd, t);
+		return Vector3_Add(lineStart, lineToIntersect);
+	}
+
+	int Triangle_ClipAgainstPlane(vec3 plane_p, vec3 plane_n, Triangle &in_tri, Triangle &out_tri1, Triangle &out_tri2)
+	{
+		// Make sure plane normal is indeed normal
+		plane_n = Vector3_Normalize(plane_n);
+
+		// Return signed shortest distance from point to plane, plane normal must be normalised
+		auto dist = [&](vec3 &p)
+		{
+			vec3 n = Vector3_Normalize(p);
+			return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - Vector3_DotProduct(plane_n, plane_p));
+		};
+
+		// Create two temporary storage arrays to classify points either side of plane
+		// If distance sign is positive, point lies on "inside" of plane
+		vec3 *inside_points[3];  int nInsidePointCount = 0;
+		vec3 *outside_points[3]; int nOutsidePointCount = 0;
+
+		// Get signed distance of each point in triangle to plane
+		float d0 = dist(in_tri.p[0]);
+		float d1 = dist(in_tri.p[1]);
+		float d2 = dist(in_tri.p[2]);
+
+		if (d0 >= 0) { inside_points[nInsidePointCount++] = &in_tri.p[0]; }
+		else { outside_points[nOutsidePointCount++] = &in_tri.p[0]; }
+		if (d1 >= 0) { inside_points[nInsidePointCount++] = &in_tri.p[1]; }
+		else { outside_points[nOutsidePointCount++] = &in_tri.p[1]; }
+		if (d2 >= 0) { inside_points[nInsidePointCount++] = &in_tri.p[2]; }
+		else { outside_points[nOutsidePointCount++] = &in_tri.p[2]; }
+
+		// Now classify triangle points, and break the input triangle into 
+		// smaller output triangles if required. There are four possible
+		// outcomes...
+
+		if (nInsidePointCount == 0)
+		{
+			// All points lie on the outside of plane, so clip whole triangle
+			// It ceases to exist
+
+			return 0; // No returned triangles are valid
+		}
+
+		if (nInsidePointCount == 3)
+		{
+			// All points lie on the inside of plane, so do nothing
+			// and allow the triangle to simply pass through
+			out_tri1 = in_tri;
+
+			return 1; // Just the one returned original triangle is valid
+		}
+
+		if (nInsidePointCount == 1 && nOutsidePointCount == 2)
+		{
+			// Triangle should be clipped. As two points lie outside
+			// the plane, the triangle simply becomes a smaller triangle
+
+			// Copy appearance info to new triangle
+			/*out_tri1.col = in_tri.col;
+			out_tri1.sym = in_tri.sym;*/
+
+			// The inside point is valid, so keep that...
+			out_tri1.p[0] = *inside_points[0];
+
+			// but the two new points are at the locations where the 
+			// original sides of the triangle (lines) intersect with the plane
+			out_tri1.p[1] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[0]);
+			out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[1]);
+
+			return 1; // Return the newly formed single triangle
+		}
+
+		if (nInsidePointCount == 2 && nOutsidePointCount == 1)
+		{
+			// Triangle should be clipped. As two points lie inside the plane,
+			// the clipped triangle becomes a "quad". Fortunately, we can
+			// represent a quad with two new triangles
+
+			// Copy appearance info to new triangles
+			/*out_tri1.col = in_tri.col;
+			out_tri1.sym = in_tri.sym;
+
+			out_tri2.col = in_tri.col;
+			out_tri2.sym = in_tri.sym;*/
+
+			// The first triangle consists of the two inside points and a new
+			// point determined by the location where one side of the triangle
+			// intersects with the plane
+			out_tri1.p[0] = *inside_points[0];
+			out_tri1.p[1] = *inside_points[1];
+			out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[0]);
+
+			// The second triangle is composed of one of he inside points, a
+			// new point determined by the intersection of the other side of the 
+			// triangle and the plane, and the newly created point above
+			out_tri2.p[0] = *inside_points[1];
+			out_tri2.p[1] = out_tri1.p[2];
+			out_tri2.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[1], *outside_points[0]);
+
+			return 2; // Return two newly formed triangles which form a quad
+		}
 	}
 
 	vec3 Matrix4_MultiplyVector(vec3 &i, Matrix4 &m) {
@@ -219,6 +339,45 @@ private:
 		}
 		return matrix;
 	}
+
+	Matrix4 Matrix4_PointAt(vec3 &pos, vec3 &target, vec3 &up)
+	{
+		// Calculate new forward direction
+		vec3 newForward = Vector3_Sub(target, pos);
+		newForward = Vector3_Normalize(newForward);
+
+		// Calculate new Up direction
+		vec3 a = Vector3_Mul(newForward, Vector3_DotProduct(up, newForward));
+		vec3 newUp = Vector3_Sub(up, a);
+		newUp = Vector3_Normalize(newUp);
+
+		// New Right direction is easy, its just cross product
+		vec3 newRight = Vector3_CrossProduct(newUp, newForward);
+
+		// Construct Dimensioning and Translation Matrix	
+		Matrix4 matrix;
+		matrix.m[0][0] = newRight.x;	matrix.m[0][1] = newRight.y;	matrix.m[0][2] = newRight.z;	matrix.m[0][3] = 0.0f;
+		matrix.m[1][0] = newUp.x;		matrix.m[1][1] = newUp.y;		matrix.m[1][2] = newUp.z;		matrix.m[1][3] = 0.0f;
+		matrix.m[2][0] = newForward.x;	matrix.m[2][1] = newForward.y;	matrix.m[2][2] = newForward.z;	matrix.m[2][3] = 0.0f;
+		matrix.m[3][0] = pos.x;			matrix.m[3][1] = pos.y;			matrix.m[3][2] = pos.z;			matrix.m[3][3] = 1.0f;
+		return matrix;
+
+	}
+
+	Matrix4 Matrix_QuickInverse(Matrix4 &m) // Only for Rotation/Translation Matrixes
+	{
+		Matrix4 matrix;
+		matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
+		matrix.m[1][0] = m.m[0][1]; matrix.m[1][1] = m.m[1][1]; matrix.m[1][2] = m.m[2][1]; matrix.m[1][3] = 0.0f;
+		matrix.m[2][0] = m.m[0][2]; matrix.m[2][1] = m.m[1][2]; matrix.m[2][2] = m.m[2][2]; matrix.m[2][3] = 0.0f;
+		matrix.m[3][0] = -(m.m[3][0] * matrix.m[0][0] + m.m[3][1] * matrix.m[1][0] + m.m[3][2] * matrix.m[2][0]);
+		matrix.m[3][1] = -(m.m[3][0] * matrix.m[0][1] + m.m[3][1] * matrix.m[1][1] + m.m[3][2] * matrix.m[2][1]);
+		matrix.m[3][2] = -(m.m[3][0] * matrix.m[0][2] + m.m[3][1] * matrix.m[1][2] + m.m[3][2] * matrix.m[2][2]);
+		matrix.m[3][3] = 1.0f;
+		return matrix;
+	}
+
+
 
 	void updateScreenAndCameraProperties(SDL_Renderer *renderer) {
 		// Gets real size of the window(Fix for MacOS/Resizing)
@@ -328,6 +487,9 @@ private:
 	void DrawSceneObjects(SDL_Renderer *renderer) {
 		Matrix4 matRotX, matRotY, matRotZ;
 
+		/*static float theta = 0;
+		theta += 1.0f / 30.0f;*/
+
 		// Rotation X
 		matRotX = Matrix4_MakeRotationX(0);
 
@@ -346,10 +508,17 @@ private:
 		matWorld = Matrix4_MultiplyMatrix(matWorld, matRotZ); // Transform by rotation by Y
 		matWorld = Matrix4_MultiplyMatrix(matWorld, matTrans); // Transform by translation
 
+		vec3 upVector = { 0, 1, 0 };
+		vec3 targetVector = { 0, 0, 1 };
+		Matrix4 matCameraRot = Matrix4_MakeRotationY(MainCamera.fYaw);
+		MainCamera.lookDirection = Matrix4_MultiplyVector(targetVector, matCameraRot);
+		targetVector = Vector3_Add(MainCamera.position, MainCamera.lookDirection);
+		Matrix4 matCamera = Matrix4_PointAt(MainCamera.position, targetVector, upVector);
 
+		Matrix4 matView = Matrix_QuickInverse(matCamera);
 
 		for (Triangle tri: MESH_CUBE.polygons) {
-			Triangle triProjected, triTransformed;
+			Triangle triProjected, triTransformed, triViewed;
 
 			// World Matrix Transform
 			triTransformed.p[0] = Matrix4_MultiplyVector(tri.p[0], matWorld);
@@ -375,17 +544,22 @@ private:
 			if (Vector3_DotProduct(normal, vCameraRay) < 0.0f) {
 
 				// Illumination
-				vec3 LightDirection = { 0, 0, -1 };
+				vec3 LightDirection = { -1, -1, -1 };
 				LightDirection = Vector3_Normalize(LightDirection);
 
 				// How similar is normal to light direction
 				float dp = normal.x * LightDirection.x + normal.y * LightDirection.y + normal.z * LightDirection.z;
 				SDL_SetRenderDrawColor(renderer, dp * 255.0f, dp * 255.0f, dp * 255.0f, 255.0f);
 
+				// Convert World Space --> View Space
+				triViewed.p[0] = Matrix4_MultiplyVector(triTransformed.p[0], matView);
+				triViewed.p[1] = Matrix4_MultiplyVector(triTransformed.p[1], matView);
+				triViewed.p[2] = Matrix4_MultiplyVector(triTransformed.p[2], matView);
+
 				// Project triangles from 3D --> 2D
-				triProjected.p[0] = Matrix4_MultiplyVector(triTransformed.p[0], matProj);
-				triProjected.p[1] = Matrix4_MultiplyVector(triTransformed.p[1], matProj);
-				triProjected.p[2] = Matrix4_MultiplyVector(triTransformed.p[2], matProj);
+				triProjected.p[0] = Matrix4_MultiplyVector(triViewed.p[0], matProj);
+				triProjected.p[1] = Matrix4_MultiplyVector(triViewed.p[1], matProj);
+				triProjected.p[2] = Matrix4_MultiplyVector(triViewed.p[2], matProj);
 
 				// Offset verts into visible normalised space
 				vec3 vOffsetView = { 1,1,0 };
@@ -408,7 +582,7 @@ private:
 				DrawFilledTriangle2D(renderer, tr);
 
 				if (DEBUG_DRAW_POLYGONS) {
-					SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255.0f);
+					SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 					DrawTriangle2D(renderer, tr);
 				}
 			}
@@ -423,9 +597,54 @@ private:
 		{
 			if (SDL_PollEvent(&windowEvent))
 			{
-				if (SDL_QUIT == windowEvent.type)
+				if (windowEvent.type == SDL_QUIT)
 				{
 					isRunning = false;
+				}
+
+				if (windowEvent.type == SDL_KEYDOWN) {
+					switch (windowEvent.key.keysym.scancode) {
+						case SDL_SCANCODE_LEFT: {
+							printf("Tapped SDL_SCANCODE_LEFT\n");
+							MainCamera.position.x -= 0.5f;
+							break;
+						}
+						case SDL_SCANCODE_RIGHT: {
+							printf("Tapped SDL_SCANCODE_RIGHT\n");
+							MainCamera.position.x += 0.5f;
+							break;
+						}
+						case SDL_SCANCODE_UP: {
+							printf("Tapped SDL_SCANCODE_UP\n");
+							MainCamera.position.z += 0.5f;
+							break;
+						}
+						case SDL_SCANCODE_DOWN: {
+							printf("Tapped SDL_SCANCODE_DOWN\n");
+							MainCamera.position.z -= 0.5f;
+							break;
+						}
+						case SDL_SCANCODE_SPACE: {
+							printf("Tapped SDL_SCANCODE_SPACE\n");
+							MainCamera.position.y -= 0.5f;
+							break;
+						}
+						case SDL_SCANCODE_X: {
+							printf("Tapped SDL_SCANCODE_X\n");
+							MainCamera.position.y += 0.5f;
+							break;
+						}
+						case SDL_SCANCODE_LEFTBRACKET: {
+							printf("Tapped SDLK_LEFTBRACKET\n");
+							MainCamera.fYaw += 0.5f;
+							break;
+						}
+						case SDL_SCANCODE_RIGHTBRACKET: {
+							printf("Tapped SDLK_RIGHTBRACKET\n");
+							MainCamera.fYaw -= 0.5f;
+							break;
+						}
+					}
 				}
 			}
 			start = SDL_GetTicks();
