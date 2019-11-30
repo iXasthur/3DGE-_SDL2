@@ -461,7 +461,7 @@ private:
 	void DrawFilledTriangle2D(SDL_Renderer *renderer, Triangle2D tr) {
 		// Points are Integers
 		// p[0] need to have lowest y among points
-		if (!(tr.p[0].y == tr.p[1].y == tr.p[2].y)) {
+		if (!(tr.p[0].y == tr.p[1].y && tr.p[1].y == tr.p[2].y)) {
 			bool sorted = false;
 			while (!sorted)
 			{
@@ -476,7 +476,6 @@ private:
 					}
 				}
 			}
-
 
 			if (tr.p[1].y == tr.p[2].y) {
 				DrawBottomFlatTriangle(renderer, tr.p);
@@ -729,56 +728,57 @@ private:
 				}
 
 				if (windowEvent.type == SDL_KEYDOWN) {
+					float offset = 10.0f/(float)FRAMES_PER_SECOND;
 					switch (windowEvent.key.keysym.scancode) {
 						// WASD
 						case SDL_SCANCODE_W: {
 							printf("Tapped SDL_SCANCODE_W\n");
-							MainCamera.position.z += 0.1f;
+							MainCamera.position.z += offset;
 							break;
 						}
 						case SDL_SCANCODE_A: {
 							printf("Tapped SDL_SCANCODE_A\n");
-							MainCamera.position.x += 0.1f;
+							MainCamera.position.x += offset;
 							break;
 						}
 						case SDL_SCANCODE_S: {
 							printf("Tapped SDL_SCANCODE_S\n");
-							MainCamera.position.z -= 0.1f;
+							MainCamera.position.z -= offset;
 							break;
 						}
 						case SDL_SCANCODE_D: {
 							printf("Tapped SDL_SCANCODE_D\n");
-							MainCamera.position.x -= 0.1f;
+							MainCamera.position.x -= offset;
 							break;
 						}
 						case SDL_SCANCODE_SPACE: {
 							printf("Tapped SDL_SCANCODE_SPACE\n");
-							MainCamera.position.y += 0.1f;
+							MainCamera.position.y += offset;
 							break;
 						}
 						case SDL_SCANCODE_X: {
 							printf("Tapped SDL_SCANCODE_X\n");
-							MainCamera.position.y -= 0.1f;
+							MainCamera.position.y -= offset;
 							break;
 						}
 						case SDL_SCANCODE_UP: {
 							printf("Tapped SDL_SCANCODE_UP\n");
-							MainCamera.fXRotation += 0.1f;
+							MainCamera.fXRotation += offset;
 							break;
 						}
 						case SDL_SCANCODE_DOWN: {
 							printf("Tapped SDL_SCANCODE_DOWN\n");
-							MainCamera.fXRotation -= 0.1f;
+							MainCamera.fXRotation -= offset;
 							break;
 						}
 						case SDL_SCANCODE_LEFT: {
 							printf("Tapped SDL_SCANCODE_LEFT\n");
-							MainCamera.fYRotation -= 0.1f;
+							MainCamera.fYRotation -= offset;
 							break;
 						}
 						case SDL_SCANCODE_RIGHT: {
 							printf("Tapped SDL_SCANCODE_RIGHT\n");
-							MainCamera.fYRotation += 0.1f;
+							MainCamera.fYRotation += offset;
 							break;
 						}
 					}
