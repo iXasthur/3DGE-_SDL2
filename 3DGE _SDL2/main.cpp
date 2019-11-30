@@ -19,6 +19,13 @@
 
 class Engine3D {
 private:
+	enum class ERROR_CODES {
+		ZERO, // No errors
+		WINDOW_INIT_ERROR, // Error while window initialization
+		SDL2_INIT_ERROR // Error while SDL2 initialization
+	};
+	ERROR_CODES GE_ERROR_CODE = ERROR_CODES::ZERO;
+
 	struct vec3 {
 		float x, y, z;
 	};
@@ -43,40 +50,80 @@ private:
 		std::vector<Mesh> obj;
 	};
 
+	struct Camera {
+		vec3 position = { 0, 0, 0 };
+		float fFOV = 90.0f;
+		float fNear = 0.1f;
+		float fFar = 1000.0f;
+	};
+
 	Mesh MESH_CUBE;
-
 	Matrix4 matProj;
+	Camera MainCamera;
 
-	vec3 CameraPos = { 0, 0, 0 };
-
+	bool DEBUG_DRAW_POLYGONS = false;
 
 	const char title[4] = "^_^";
 	const int FRAMES_PER_SECOND = 30;
 
 	int WIDTH, HEIGHT;
-	const float FOV = 90.0f;
-	const float fNear = 0.1f;
-	const float fFar = 1000.0f;
 
 	bool isRunning = false;
 
 	SDL_Window *window = NULL;
-
 
 	bool check_window(SDL_Window *window) {
 		if (window == NULL)
 		{
 			printf("Error creating window! SDL_Error: %s\n", SDL_GetError());
 			return false;
-		}
-		else {
+		} else {
 			printf("Created window(%dx%d)!\n", WIDTH, HEIGHT);
 			return true;
 		}
 	}
 
-	void MultiplyVectorByMatrix(vec3 &i, vec3 &o, Matrix4 &m) {
+	vec3 Vector3_Add(vec3 &v1, vec3 &v2) {
+		return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
+	}
 
+	vec3 Vector3_Sub(vec3 &v1, vec3 &v2) {
+		return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
+	}
+
+	vec3 Vector3_Mul(vec3 &v1, float k) {
+		return { v1.x * k, v1.y * k, v1.z * k };
+	}
+
+	vec3 Vector3_Div(vec3 &v1, float k) {
+		return { v1.x / k, v1.y / k, v1.z / k };
+	}
+
+	float Vector3_DotProduct(vec3 &v1, vec3 &v2) {
+		return (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z);
+	}
+
+	float Vector3_Length(vec3 &v)
+	{
+		return sqrtf(Vector3_DotProduct(v, v));
+	}
+
+	vec3 Vector3_Normalize(vec3 &v) {
+		float l = Vector3_Length(v);
+		return { v.x / l, v.y / l, v.z / l };
+	}
+
+	vec3 Vector3_CrossProduct(vec3 &v1, vec3 &v2)
+	{
+		vec3 v;
+		v.x = v1.y * v2.z - v1.z * v2.y;
+		v.y = v1.z * v2.x - v1.x * v2.z;
+		v.z = v1.x * v2.y - v1.y * v2.x;
+		return v;
+	}
+
+	vec3 Matrix4_MultiplyVector(vec3 &i, Matrix4 &m) {
+		vec3 o;
 		o.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + m.m[3][0];
 		o.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + m.m[3][1];
 		o.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + m.m[3][2];
@@ -88,55 +135,8 @@ private:
 			o.y /= w;
 			o.z /= w;
 		}
+		return o;
 	}
-
-	vec3 Vector4_Add(vec3 &v1, vec3 &v2) {
-		return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
-	}
-
-	vec3 Vector4_Sub(vec3 &v1, vec3 &v2) {
-		return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
-	}
-
-	vec3 Vector4_Mul(vec3 &v1, float k) {
-		return { v1.x * k, v1.y * k, v1.z * k };
-	}
-
-	vec3 Vector4_Div(vec3 &v1, float k) {
-		return { v1.x / k, v1.y / k, v1.z / k };
-	}
-
-	float Vector4_DotProduct(vec3 &v1, vec3 &v2) {
-		return (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z);
-	}
-
-	float Vector4_Length(vec3 &v)
-	{
-		return sqrtf(Vector4_DotProduct(v, v));
-	}
-
-	vec3 Vector4_Normalize(vec3 &v) {
-		float l = Vector4_Length(v);
-		return { v.x / l, v.y / l, v.z / l };
-	}
-
-	vec3 Vector4_CrossProduct(vec3 &v1, vec3 &v2)
-	{
-		vec3 v;
-		v.x = v1.y * v2.z - v1.z * v2.y;
-		v.y = v1.z * v2.x - v1.x * v2.z;
-		v.z = v1.x * v2.y - v1.y * v2.x;
-		return v;
-	}
-
-	/*vec3 Matrix4_MultiplyVector(Matrix4 &m, vec3 &i) {
-		vec3 v;
-		v.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + i.w * m.m[3][0];
-		v.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + i.w * m.m[3][1];
-		v.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + i.w * m.m[3][2];
-		v.w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + i.w * m.m[3][3];
-		return v;
-	}*/
 
 	Matrix4 Matrix4_MakeIdentity() {
 		Matrix4 matrix;
@@ -209,7 +209,7 @@ private:
 		return matrix;
 	}
 
-	Matrix4 Matrix_MultiplyMatrix(Matrix4 &m1, Matrix4 &m2)
+	Matrix4 Matrix4_MultiplyMatrix(Matrix4 &m1, Matrix4 &m2)
 	{
 		Matrix4 matrix;
 		for (int c = 0; c < 4; c++) {
@@ -223,28 +223,12 @@ private:
 	void updateScreenAndCameraProperties(SDL_Renderer *renderer) {
 		// Gets real size of the window(Fix for MacOS/Resizing)
 		SDL_GetRendererOutputSize(renderer, &WIDTH, &HEIGHT);
-
-		const float fFovRad = 1.0f / tanf(FOV * 0.5f / 180.0f * 3.14159f);
 		const float fAspectRatio = (float)HEIGHT / (float)WIDTH;
-
-		
-		matProj.m[0][0] = fAspectRatio * fFovRad;
-		matProj.m[1][1] = fFovRad;
-		matProj.m[2][2] = fFar / (fFar - fNear);
-		matProj.m[3][2] = (-fFar * fNear) / (fFar - fNear);
-		matProj.m[2][3] = 1.0f;
-		matProj.m[3][3] = 0.0f;
-
+		matProj = Matrix4_MakeProjection(MainCamera.fFOV, fAspectRatio, MainCamera.fNear, MainCamera.fFar);
 	}
 
-	void DrawTriangle2D(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, int x3, int y3) {
-		const SDL_Point points[4] = {
-										{ x1,y1 },
-										{ x2,y2 },
-										{ x3,y3 },
-										{ x1,y1 }
-									};
-
+	void DrawTriangle2D(SDL_Renderer *renderer, Triangle2D tr) {
+		SDL_Point points[4] = { tr.p[0], tr.p[1], tr.p[2], tr.p[0] };
 		SDL_RenderDrawLines(renderer, points, 4);
 	}
 
@@ -298,10 +282,6 @@ private:
 		}
 	}
 
-	void DrawFlatTriangle(SDL_Renderer *renderer, SDL_Point *v) {
-
-	}
-
 	void DrawFilledTriangle2D(SDL_Renderer *renderer, Triangle2D tr) {
 		// Points are Integers
 		// p[0] need to have lowest y among points
@@ -346,81 +326,72 @@ private:
 	}
 	
 	void DrawSceneObjects(SDL_Renderer *renderer) {
-		Matrix4 matRotZ, matRotX;
-
-		static float fTheta = 0;
-		fTheta += 1/(float)FRAMES_PER_SECOND;
-
-		// Rotation Z
-		matRotZ = Matrix4_MakeRotationZ(fTheta);
+		Matrix4 matRotX, matRotY, matRotZ;
 
 		// Rotation X
-		matRotX = Matrix4_MakeRotationX(fTheta);
+		matRotX = Matrix4_MakeRotationX(0);
+
+		// Rotation Y
+		matRotY = Matrix4_MakeRotationY(0);
+
+		// Rotation Z
+		matRotZ = Matrix4_MakeRotationZ(0);
+
+		Matrix4 matTrans;
+		matTrans = Matrix4_MakeTranslation(0.0f, 0.0f, 5.0f);
+
+		Matrix4 matWorld;
+		matWorld = Matrix4_MakeIdentity();	// Form World Matrix
+		matWorld = Matrix4_MultiplyMatrix(matRotX, matRotY); // Transform by rotation by X and Y
+		matWorld = Matrix4_MultiplyMatrix(matWorld, matRotZ); // Transform by rotation by Y
+		matWorld = Matrix4_MultiplyMatrix(matWorld, matTrans); // Transform by translation
+
 
 
 		for (Triangle tri: MESH_CUBE.polygons) {
-			Triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;;
+			Triangle triProjected, triTransformed;
 
-			// Rotate in Z-Axis
-			MultiplyVectorByMatrix(tri.p[0], triRotatedZ.p[0], matRotZ);
-			MultiplyVectorByMatrix(tri.p[1], triRotatedZ.p[1], matRotZ);
-			MultiplyVectorByMatrix(tri.p[2], triRotatedZ.p[2], matRotZ);
+			// World Matrix Transform
+			triTransformed.p[0] = Matrix4_MultiplyVector(tri.p[0], matWorld);
+			triTransformed.p[1] = Matrix4_MultiplyVector(tri.p[1], matWorld);
+			triTransformed.p[2] = Matrix4_MultiplyVector(tri.p[2], matWorld);
 
-			// Rotate in X-Axis
-			MultiplyVectorByMatrix(triRotatedZ.p[0], triRotatedZX.p[0], matRotX);
-			MultiplyVectorByMatrix(triRotatedZ.p[1], triRotatedZX.p[1], matRotX);
-			MultiplyVectorByMatrix(triRotatedZ.p[2], triRotatedZX.p[2], matRotX);
-
-			// Offset into the screen
-			triTranslated = triRotatedZX;
-			triTranslated.p[0].z = triRotatedZX.p[0].z + 3.0f;
-			triTranslated.p[1].z = triRotatedZX.p[1].z + 3.0f;
-			triTranslated.p[2].z = triRotatedZX.p[2].z + 3.0f;
-
-			// Calculate normal
+			// Calculate triangle Normal
 			vec3 normal, line1, line2;
-			line1.x = triTranslated.p[1].x - triTranslated.p[0].x;
-			line1.y = triTranslated.p[1].y - triTranslated.p[0].y;
-			line1.z = triTranslated.p[1].z - triTranslated.p[0].z;
 
-			line2.x = triTranslated.p[2].x - triTranslated.p[0].x;
-			line2.y = triTranslated.p[2].y - triTranslated.p[0].y;
-			line2.z = triTranslated.p[2].z - triTranslated.p[0].z;
+			// Get lines either side of triangle
+			line1 = Vector3_Sub(triTransformed.p[1], triTransformed.p[0]);
+			line2 = Vector3_Sub(triTransformed.p[2], triTransformed.p[0]);
 
-			normal.x = line1.y * line2.z - line1.z * line2.y;
-			normal.y = line1.z * line2.x - line1.x * line2.z;
-			normal.z = line1.x * line2.y - line1.y * line2.x;
+			// Take cross product of lines to get normal to triangle surface
+			normal = Vector3_CrossProduct(line1, line2);
 
-			// Normalize normal
-			float l = sqrtf(normal.x* normal.x + normal.y* normal.y + normal.z*normal.z);
-			normal.x /= l;
-			normal.y /= l;
-			normal.z /= l;
+			// You normally need to normalise a normal!
+			normal = Vector3_Normalize(normal);
 
-			if (normal.x * (triTranslated.p[0].x - CameraPos.x) + 
-				normal.y * (triTranslated.p[0].y - CameraPos.y) + 
-				normal.z * (triTranslated.p[0].z - CameraPos.z) < 0.0f) {
+			// Get Ray from triangle to camera
+			vec3 vCameraRay = Vector3_Sub(triTransformed.p[0], MainCamera.position);
+
+			if (Vector3_DotProduct(normal, vCameraRay) < 0.0f) {
 
 				// Illumination
 				vec3 LightDirection = { 0, 0, -1 };
-				float l = sqrtf(LightDirection.x * LightDirection.x + LightDirection.y * LightDirection.y + LightDirection.z * LightDirection.z);
-				LightDirection.x /= l;
-				LightDirection.y /= l;
-				LightDirection.z /= l;
+				LightDirection = Vector3_Normalize(LightDirection);
 
 				// How similar is normal to light direction
 				float dp = normal.x * LightDirection.x + normal.y * LightDirection.y + normal.z * LightDirection.z;
 				SDL_SetRenderDrawColor(renderer, dp * 255.0f, dp * 255.0f, dp * 255.0f, 255.0f);
 
-				// 3D -> 2D
-				MultiplyVectorByMatrix(triTranslated.p[0], triProjected.p[0], matProj);
-				MultiplyVectorByMatrix(triTranslated.p[1], triProjected.p[1], matProj);
-				MultiplyVectorByMatrix(triTranslated.p[2], triProjected.p[2], matProj);
+				// Project triangles from 3D --> 2D
+				triProjected.p[0] = Matrix4_MultiplyVector(triTransformed.p[0], matProj);
+				triProjected.p[1] = Matrix4_MultiplyVector(triTransformed.p[1], matProj);
+				triProjected.p[2] = Matrix4_MultiplyVector(triTransformed.p[2], matProj);
 
-				triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
-				triProjected.p[1].x += 1.0f; triProjected.p[1].y += 1.0f;
-				triProjected.p[2].x += 1.0f; triProjected.p[2].y += 1.0f;
-
+				// Offset verts into visible normalised space
+				vec3 vOffsetView = { 1,1,0 };
+				triProjected.p[0] = Vector3_Add(triProjected.p[0], vOffsetView);
+				triProjected.p[1] = Vector3_Add(triProjected.p[1], vOffsetView);
+				triProjected.p[2] = Vector3_Add(triProjected.p[2], vOffsetView);
 				triProjected.p[0].x *= 0.5f * WIDTH;
 				triProjected.p[0].y *= 0.5f * HEIGHT;
 				triProjected.p[1].x *= 0.5f * WIDTH;
@@ -434,10 +405,12 @@ private:
 								{ triProjected.p[2].x,triProjected.p[2].y }
 				};
 				Triangle2D tr = {points[0], points[1], points[2]};
-				/*DrawTriangle2D(renderer, triProjected.p[0].x, triProjected.p[0].y,
-					triProjected.p[1].x, triProjected.p[1].y,
-					triProjected.p[2].x, triProjected.p[2].y);*/
 				DrawFilledTriangle2D(renderer, tr);
+
+				if (DEBUG_DRAW_POLYGONS) {
+					SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255.0f);
+					DrawTriangle2D(renderer, tr);
+				}
 			}
 		}
 	}
@@ -510,9 +483,10 @@ private:
 		};
 	}
 
-	int initEngine() {
-		SDL_Init(SDL_INIT_VIDEO);
-
+	ERROR_CODES initEngine() {
+		if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+			return ERROR_CODES::SDL2_INIT_ERROR;
+		}
 
 		window = SDL_CreateWindow(
 									title,
@@ -525,33 +499,44 @@ private:
 
 		// Check that the window was successfully created
 		if (!check_window(window)) {
-			return -100;
+			return ERROR_CODES::WINDOW_INIT_ERROR;
 		};
 
 		initMeshes();
+		printf("Initialized meshes!\n");
 
-		return 0;
+		return ERROR_CODES::ZERO;
 	}
+
+	void Destroy() {
+		SDL_DestroyWindow(window);
+		SDL_Quit();
+		printf("Destroyed 3DGE!\n");
+	}
+
 public:
 	Engine3D(int _WIDTH, int _HEIGHT) {
 		WIDTH = _WIDTH;
 		HEIGHT = _HEIGHT;
-		initEngine();
+		GE_ERROR_CODE = initEngine();
 	}
 	Engine3D() {
 		WIDTH = 800;
 		HEIGHT = 600;
-		initEngine();
+		GE_ERROR_CODE = initEngine();
+	}
+
+	~Engine3D() {
+		Destroy();
 	}
 
 	void startScene() {
+		if (GE_ERROR_CODE != ERROR_CODES::ZERO) {
+			printf("Unable to start scene! ERROR: %d\n", GE_ERROR_CODE);
+			return;
+		}
 		isRunning = true;
 		StartRenderLoop();
-	}
-
-	void destroy() {
-		SDL_DestroyWindow(window);
-		SDL_Quit();
 	}
 };
 
@@ -564,9 +549,7 @@ int main(int argc, char *argv[])
 {
 	Engine3D Engine(800, 600);
 	Engine.startScene();
-	Engine.destroy();
-
-    return EXIT_SUCCESS;
+    return 0;
 }
 
 
