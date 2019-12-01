@@ -48,9 +48,9 @@ private:
 
 	struct Triangle {
 		vec3 p[3];
-		float R = 0.0f;
-		float G = 0.0f;
-		float B = 0.0f;
+		float R = 255.0f;
+		float G = 255.0f;
+		float B = 255.0f;
 		float A = 255.0f;
 	};
 
@@ -583,9 +583,9 @@ private:
 				if (dp < 0.1f) {
 					dp = 0.1f;
 				}
-				triTransformed.R = dp * 255.0f;
-				triTransformed.G = dp * 255.0f;
-				triTransformed.B = dp * 255.0f;
+				triTransformed.R = dp * triTransformed.R;
+				triTransformed.G = dp * triTransformed.G;
+				triTransformed.B = dp * triTransformed.B;
 
 				// Convert World Space --> View Space
 				triViewed.p[0] = Matrix4_MultiplyVector(triTransformed.p[0], matView);
