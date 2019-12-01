@@ -77,7 +77,7 @@ private:
 		std::vector<GE_Object> obj;
 	};
 
-	struct Camera {
+	struct GE_Camera {
 		vec3 position = { 0, 2, 2 };
 		vec3 lookDirection = { 0, 0, 1 };
 		float fXRotation = 0;
@@ -93,7 +93,7 @@ private:
 	GE_STD_MESHES GE_MESHES;
 
 	Matrix4 matProj;
-	Camera MainCamera;
+	GE_Camera MainCamera;
 
 	const char title[4] = "^_^";
 	const int FRAMES_PER_SECOND = 120;
