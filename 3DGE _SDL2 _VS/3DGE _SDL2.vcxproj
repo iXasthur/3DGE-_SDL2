@@ -106,6 +106,9 @@
   <ItemGroup>
     <ClCompile Include="..\3dge _sdl2\main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\3DGE _SDL2\GE_3DMath.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
