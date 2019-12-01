@@ -855,6 +855,7 @@ private:
 					switch (GE_CURRENT_KEYBOARD_CONTROL)
 					{
 					case Engine3D::KEYBOARD_CONTROL_TYPES::ALLOW_SCENE_EDITING:
+						SceneEditingHandle(windowEvent.key.keysym.scancode);
 						break;
 					case Engine3D::KEYBOARD_CONTROL_TYPES::ALLOW_OBJECT_EDITING:
 						break;
