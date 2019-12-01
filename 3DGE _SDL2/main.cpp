@@ -739,6 +739,35 @@ private:
 		}
 	}
 
+	void SceneEditingHandle(SDL_Scancode scancode) {
+		printf("SceneEditingHandle->");
+		switch (scancode) {
+		case SDL_SCANCODE_SPACE: {
+			printf("Tapped SDL_SCANCODE_SPACE\n");
+			break;
+		}
+		case SDL_SCANCODE_UP: {
+			printf("Tapped SDL_SCANCODE_UP\n");
+			break;
+		}
+		case SDL_SCANCODE_DOWN: {
+			printf("Tapped SDL_SCANCODE_DOWN\n");
+			break;
+		}
+		case SDL_SCANCODE_LEFT: {
+			printf("Tapped SDL_SCANCODE_LEFT\n");
+			break;
+		}
+		case SDL_SCANCODE_RIGHT: {
+			printf("Tapped SDL_SCANCODE_RIGHT\n");
+			break;
+		}
+		default:
+			printf("Tapped untreated key: %d\n", scancode);
+			break;
+		}
+	}
+
 	void CameraMovementHandle(SDL_Scancode scancode) {
 		float offset = 10.0f / (float)FRAMES_PER_SECOND;
 		printf("CameraMovementHandle->");
