@@ -34,14 +34,14 @@ private:
 		ALLOW_OBJECT_EDITING,
 		ALLOW_CAMERA_CONTROL
 	};
-	KEYBOARD_CONTROL_TYPES GE_CURRENT_KEYBOARD_CONTROL = KEYBOARD_CONTROL_TYPES::ALLOW_CAMERA_CONTROL;
+	KEYBOARD_CONTROL_TYPES GE_CURRENT_KEYBOARD_CONTROL = KEYBOARD_CONTROL_TYPES::ALLOW_SCENE_EDITING;
 
 	enum class RENDERING_STYLES {
 		STD_SHADED,
 		STD_POLY_SHADED,
 		DEBUG_DRAW_ONLY_POLYGONS
 	};
-	RENDERING_STYLES GE_RENDERING_STYLE = RENDERING_STYLES::STD_POLY_SHADED;
+	RENDERING_STYLES GE_RENDERING_STYLE = RENDERING_STYLES::STD_SHADED;
 
 
 	struct Triangle {
@@ -61,27 +61,42 @@ private:
 	};
 
 	struct GE_Object {
+	private:
 		vec3 position = { 0, 0, 0 };
+	public:
 		Mesh mesh;
-		void moveTo(vec3 v) {
-			v = Vector3_Sub(v, position);
+		void moveBy(vec3 v) {
+			position = Vector3_Add(position, v);
 			for (Triangle &tri : mesh.polygons) {
 				for (vec3 &p : tri.p) {
-					p = Vector3_Add(position, v);
+					p = Vector3_Add(p, v);
 				}
 			}
+			printf("Moved block to %.2f %.2f %.2f\n", position.x, position.y, position.z);
+		}
+
+		void setColor(float R, float G, float B, float A) {
+			for (Triangle &tri : mesh.polygons) {
+				tri.R = R;
+				tri.G = G;
+				tri.B = B;
+				tri.A = A;
+			}
+			printf("Changed color to %.2f %.2f %.2f %.2f\n", R, G, B, A);
 		}
 	};
 	
 	struct DrawList {
 		std::vector<GE_Object> obj;
 	};
+	DrawList GE_DRAW_LIST;
 
 	struct GE_Camera {
-		vec3 position = { 0, 2, 2 };
+		// pi -3.14159f
+		vec3 position = { 3, 4, 0 };
 		vec3 lookDirection = { 0, 0, 1 };
-		float fXRotation = 0;
-		float fYRotation = 0;
+		float fXRotation = 3.14159f / 6.0f;//3.14159f / 1000.0f;
+		float fYRotation = 3.14159f / 8.0f;;// 3.14159f / 4.0f;
 		float fFOV = 90.0f;
 		float fNear = 0.1f;
 		float fFar = 1000.0f;
@@ -94,6 +109,9 @@ private:
 
 	Matrix4 matProj;
 	GE_Camera MainCamera;
+
+	// Illumination
+	vec3 LightDirection = { 0.5f, 0.75f, -1.0f }; // LIGHT ORIGIN
 
 	const char title[4] = "^_^";
 	const int FRAMES_PER_SECOND = 120;
@@ -355,201 +373,201 @@ private:
 		matWorld = Matrix4_MultiplyMatrix(matWorld, matTrans); // Transform by translation
 
 		vec3 upVector = { 0, 1, 0 };
-		vec3 targetVector = { 0, -1, 1 };
+		vec3 targetVector = { 0, 0, 1 };
 		Matrix4 matCameraRot = Matrix4_MultiplyMatrix(Matrix4_MakeRotationX(MainCamera.fXRotation), Matrix4_MakeRotationY(MainCamera.fYRotation));
 		MainCamera.lookDirection = Matrix4_MultiplyVector(targetVector, matCameraRot);
 		targetVector = Vector3_Add(MainCamera.position, MainCamera.lookDirection);
 		Matrix4 matCamera = Matrix4_PointAt(MainCamera.position, targetVector, upVector);
 
-		Matrix4 matView = Matrix_QuickInverse(matCamera);
+		Matrix4 matView = Matrix4_QuickInverse(matCamera);
 
 		// Store triagles for rastering later
 		std::vector<Triangle> vecTrianglesToRaster;
 
-		for (Triangle tri: GE_MESHES.MESH_CUBE.polygons) {
-			Triangle triProjected, triTransformed, triViewed;
+		for (GE_Object &obj : GE_DRAW_LIST.obj) {
+			for (Triangle &tri : obj.mesh.polygons) {
+				Triangle triProjected, triTransformed, triViewed;
 
-			// World Matrix Transform
-			triTransformed.p[0] = Matrix4_MultiplyVector(tri.p[0], matWorld);
-			triTransformed.p[1] = Matrix4_MultiplyVector(tri.p[1], matWorld);
-			triTransformed.p[2] = Matrix4_MultiplyVector(tri.p[2], matWorld);
+				// World Matrix Transform
+				triTransformed.p[0] = Matrix4_MultiplyVector(tri.p[0], matWorld);
+				triTransformed.p[1] = Matrix4_MultiplyVector(tri.p[1], matWorld);
+				triTransformed.p[2] = Matrix4_MultiplyVector(tri.p[2], matWorld);
+				triTransformed.R = tri.R;
+				triTransformed.G = tri.G;
+				triTransformed.B = tri.B;
 
-			// Calculate triangle Normal
-			vec3 normal, line1, line2;
+				// Calculate triangle Normal
+				vec3 normal, line1, line2;
 
-			// Get lines either side of triangle
-			line1 = Vector3_Sub(triTransformed.p[1], triTransformed.p[0]);
-			line2 = Vector3_Sub(triTransformed.p[2], triTransformed.p[0]);
+				// Get lines either side of triangle
+				line1 = Vector3_Sub(triTransformed.p[1], triTransformed.p[0]);
+				line2 = Vector3_Sub(triTransformed.p[2], triTransformed.p[0]);
 
-			// Take cross product of lines to get normal to triangle surface
-			normal = Vector3_CrossProduct(line1, line2);
+				// Take cross product of lines to get normal to triangle surface
+				normal = Vector3_CrossProduct(line1, line2);
 
-			// You normally need to normalise a normal!
-			normal = Vector3_Normalize(normal);
+				// You normally need to normalise a normal!
+				normal = Vector3_Normalize(normal);
 
-			// Get Ray from triangle to camera
-			vec3 vCameraRay = Vector3_Sub(triTransformed.p[0], MainCamera.position);
+				// Get Ray from triangle to camera
+				vec3 vCameraRay = Vector3_Sub(triTransformed.p[0], MainCamera.position);
 
-			if (Vector3_DotProduct(normal, vCameraRay) < 0.0f) {
+				if (Vector3_DotProduct(normal, vCameraRay) < 0.0f) {
 
-				// Illumination
-				vec3 LightDirection = { 1.0f, 1.0f, -1.0f }; // LIGHT ORIGIN
-				LightDirection = Vector3_Normalize(LightDirection);
-
-				// How similar is normal to light direction
-				float dp = normal.x * LightDirection.x + normal.y * LightDirection.y + normal.z * LightDirection.z;
-				if (dp < 0.1f) {
-					dp = 0.1f;
-				}
-				triTransformed.R = dp * triTransformed.R;
-				triTransformed.G = dp * triTransformed.G;
-				triTransformed.B = dp * triTransformed.B;
-
-				// Convert World Space --> View Space
-				triViewed.p[0] = Matrix4_MultiplyVector(triTransformed.p[0], matView);
-				triViewed.p[1] = Matrix4_MultiplyVector(triTransformed.p[1], matView);
-				triViewed.p[2] = Matrix4_MultiplyVector(triTransformed.p[2], matView);
-				triViewed.R = triTransformed.R;
-				triViewed.G = triTransformed.G;
-				triViewed.B = triTransformed.B;
-
-				int nClippedTriangles = 0;
-				Triangle clipped[2];
-				nClippedTriangles = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triViewed, clipped[0], clipped[1]);
-
-				for (int n = 0; n < nClippedTriangles; n++)
-				{
-					// Project triangles from 3D --> 2D
-					triProjected.p[0] = Matrix4_MultiplyVector(clipped[n].p[0], matProj);
-					triProjected.p[1] = Matrix4_MultiplyVector(clipped[n].p[1], matProj);
-					triProjected.p[2] = Matrix4_MultiplyVector(clipped[n].p[2], matProj);
-					triProjected.R = clipped[n].R;
-					triProjected.G = clipped[n].G;
-					triProjected.B = clipped[n].B;
-
-					// X/Y are inverted so put them back
-					triProjected.p[0].x *= -1.0f;
-					triProjected.p[1].x *= -1.0f;
-					triProjected.p[2].x *= -1.0f;
-					triProjected.p[0].y *= -1.0f;
-					triProjected.p[1].y *= -1.0f;
-					triProjected.p[2].y *= -1.0f;
-
-					// Offset verts into visible normalised space
-					vec3 vOffsetView = { 1,1,0 };
-					triProjected.p[0] = Vector3_Add(triProjected.p[0], vOffsetView);
-					triProjected.p[1] = Vector3_Add(triProjected.p[1], vOffsetView);
-					triProjected.p[2] = Vector3_Add(triProjected.p[2], vOffsetView);
-					triProjected.p[0].x *= 0.5f * WIDTH;
-					triProjected.p[0].y *= 0.5f * HEIGHT;
-					triProjected.p[1].x *= 0.5f * WIDTH;
-					triProjected.p[1].y *= 0.5f * HEIGHT;
-					triProjected.p[2].x *= 0.5f * WIDTH;
-					triProjected.p[2].y *= 0.5f * HEIGHT;
-
-					// Store triangle for sorting
-					vecTrianglesToRaster.push_back(triProjected);
-				}
-				
-				sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](Triangle &t1, Triangle &t2)
-					{
-						float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
-						float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
-						return z1 > z2;
-					});
-
-				// Legacy rendering code
-				/*for (Triangle rTri : vecTrianglesToRaster) {
-					SDL_Point points[3] = {
-									{ rTri.p[0].x,rTri.p[0].y },
-									{ rTri.p[1].x,rTri.p[1].y },
-									{ rTri.p[2].x,rTri.p[2].y }
-					};
-					Triangle2D tr = { points[0], points[1], points[2] };
-					SDL_SetRenderDrawColor(renderer, dp * 255.0f, dp * 255.0f, dp * 255.0f, 255.0f);
-					DrawFilledTriangle2D(renderer, tr);
-
-					if (DEBUG_DRAW_POLYGONS) {
-						SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-						DrawTriangle2D(renderer, tr);
+					// How similar is normal to light direction
+					float dp = normal.x * LightDirection.x + normal.y * LightDirection.y + normal.z * LightDirection.z;
+					if (dp < 0.1f) {
+						dp = 0.1f;
 					}
-				}*/
+					triTransformed.R = dp * triTransformed.R;
+					triTransformed.G = dp * triTransformed.G;
+					triTransformed.B = dp * triTransformed.B;
 
-				for (auto &triToRaster : vecTrianglesToRaster)
-				{
-					// Clip triangles against all four screen edges, this could yield
-					// a bunch of triangles, so create a queue that we traverse to 
-					//  ensure we only test new triangles generated against planes
+					// Convert World Space --> View Space
+					triViewed.p[0] = Matrix4_MultiplyVector(triTransformed.p[0], matView);
+					triViewed.p[1] = Matrix4_MultiplyVector(triTransformed.p[1], matView);
+					triViewed.p[2] = Matrix4_MultiplyVector(triTransformed.p[2], matView);
+					triViewed.R = triTransformed.R;
+					triViewed.G = triTransformed.G;
+					triViewed.B = triTransformed.B;
+
+					int nClippedTriangles = 0;
 					Triangle clipped[2];
-					std::list<Triangle> listTriangles;
+					nClippedTriangles = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triViewed, clipped[0], clipped[1]);
 
-					// Add initial triangle
-					listTriangles.push_back(triToRaster);
-					int nNewTriangles = 1;
-
-					for (int p = 0; p < 4; p++)
+					for (int n = 0; n < nClippedTriangles; n++)
 					{
-						int nTrisToAdd = 0;
-						while (nNewTriangles > 0)
-						{
-							// Take triangle from front of queue
-							Triangle test = listTriangles.front();
-							listTriangles.pop_front();
-							nNewTriangles--;
+						// Project triangles from 3D --> 2D
+						triProjected.p[0] = Matrix4_MultiplyVector(clipped[n].p[0], matProj);
+						triProjected.p[1] = Matrix4_MultiplyVector(clipped[n].p[1], matProj);
+						triProjected.p[2] = Matrix4_MultiplyVector(clipped[n].p[2], matProj);
+						triProjected.R = clipped[n].R;
+						triProjected.G = clipped[n].G;
+						triProjected.B = clipped[n].B;
 
-							// Clip it against a plane. We only need to test each 
-							// subsequent plane, against subsequent new triangles
-							// as all triangles after a plane clip are guaranteed
-							// to lie on the inside of the plane. I like how this
-							// comment is almost completely and utterly justified
-							switch (p)
-							{
-							case 0:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-							case 1:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, (float)HEIGHT - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-							case 2:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-							case 3:	nTrisToAdd = Triangle_ClipAgainstPlane({ (float)WIDTH - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-							}
+						// X/Y are inverted so put them back
+						triProjected.p[0].x *= -1.0f;
+						triProjected.p[1].x *= -1.0f;
+						triProjected.p[2].x *= -1.0f;
+						triProjected.p[0].y *= -1.0f;
+						triProjected.p[1].y *= -1.0f;
+						triProjected.p[2].y *= -1.0f;
 
-							// Clipping may yield a variable number of triangles, so
-							// add these new ones to the back of the queue for subsequent
-							// clipping against next planes
-							for (int w = 0; w < nTrisToAdd; w++) {
-								listTriangles.push_back(clipped[w]);
-							}
+						// Offset verts into visible normalised space
+						vec3 vOffsetView = { 1,1,0 };
+						triProjected.p[0] = Vector3_Add(triProjected.p[0], vOffsetView);
+						triProjected.p[1] = Vector3_Add(triProjected.p[1], vOffsetView);
+						triProjected.p[2] = Vector3_Add(triProjected.p[2], vOffsetView);
+						triProjected.p[0].x *= 0.5f * WIDTH;
+						triProjected.p[0].y *= 0.5f * HEIGHT;
+						triProjected.p[1].x *= 0.5f * WIDTH;
+						triProjected.p[1].y *= 0.5f * HEIGHT;
+						triProjected.p[2].x *= 0.5f * WIDTH;
+						triProjected.p[2].y *= 0.5f * HEIGHT;
 
-						}
-						nNewTriangles = listTriangles.size();
+						// Store triangle for sorting
+						vecTrianglesToRaster.push_back(triProjected);
 					}
 
+					sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](Triangle &t1, Triangle &t2)
+						{
+							float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
+							float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
+							return z1 > z2;
+						});
 
-					// Draw the transformed, viewed, clipped, projected, sorted, clipped triangles
-					for (Triangle &t : listTriangles)
-					{
+					// Legacy rendering code
+					/*for (Triangle rTri : vecTrianglesToRaster) {
 						SDL_Point points[3] = {
-									{ t.p[0].x,t.p[0].y },
-									{ t.p[1].x,t.p[1].y },
-									{ t.p[2].x,t.p[2].y }
+										{ rTri.p[0].x,rTri.p[0].y },
+										{ rTri.p[1].x,rTri.p[1].y },
+										{ rTri.p[2].x,rTri.p[2].y }
 						};
 						Triangle2D tr = { points[0], points[1], points[2] };
+						SDL_SetRenderDrawColor(renderer, dp * 255.0f, dp * 255.0f, dp * 255.0f, 255.0f);
+						DrawFilledTriangle2D(renderer, tr);
 
-						switch (GE_RENDERING_STYLE)
+						if (DEBUG_DRAW_POLYGONS) {
+							SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+							DrawTriangle2D(renderer, tr);
+						}
+					}*/
+
+					for (Triangle &triToRaster : vecTrianglesToRaster)
+					{
+						// Clip triangles against all four screen edges, this could yield
+						// a bunch of triangles, so create a queue that we traverse to 
+						//  ensure we only test new triangles generated against planes
+						Triangle clipped[2];
+						std::list<Triangle> listTriangles;
+
+						// Add initial triangle
+						listTriangles.push_back(triToRaster);
+						int nNewTriangles = 1;
+
+						for (int p = 0; p < 4; p++)
 						{
-						case Engine3D::RENDERING_STYLES::STD_SHADED:
-							SDL_SetRenderDrawColor(renderer, t.R, t.G, t.B, 255.0f);
-							DrawFilledTriangle2D(renderer, tr);
-							break;
-						case Engine3D::RENDERING_STYLES::STD_POLY_SHADED:
-							SDL_SetRenderDrawColor(renderer, t.R, t.G, t.B, 255.0f);
-							DrawFilledTriangle2D(renderer, tr);
-							SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-							DrawTriangle2D(renderer, tr);
-							break;
-						case Engine3D::RENDERING_STYLES::DEBUG_DRAW_ONLY_POLYGONS:
-							SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-							DrawTriangle2D(renderer, tr);
-							break;
-						default:
-							break;
+							int nTrisToAdd = 0;
+							while (nNewTriangles > 0)
+							{
+								// Take triangle from front of queue
+								Triangle test = listTriangles.front();
+								listTriangles.pop_front();
+								nNewTriangles--;
+
+								// Clip it against a plane. We only need to test each 
+								// subsequent plane, against subsequent new triangles
+								// as all triangles after a plane clip are guaranteed
+								// to lie on the inside of the plane. I like how this
+								// comment is almost completely and utterly justified
+								switch (p)
+								{
+								case 0:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+								case 1:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, (float)HEIGHT - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+								case 2:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+								case 3:	nTrisToAdd = Triangle_ClipAgainstPlane({ (float)WIDTH - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+								}
+
+								// Clipping may yield a variable number of triangles, so
+								// add these new ones to the back of the queue for subsequent
+								// clipping against next planes
+								for (int w = 0; w < nTrisToAdd; w++) {
+									listTriangles.push_back(clipped[w]);
+								}
+
+							}
+							nNewTriangles = listTriangles.size();
+						}
+
+
+						// Draw the transformed, viewed, clipped, projected, sorted, clipped triangles
+						for (Triangle &t : listTriangles)
+						{
+							SDL_Point points[3] = {
+										{ t.p[0].x,t.p[0].y },
+										{ t.p[1].x,t.p[1].y },
+										{ t.p[2].x,t.p[2].y }
+							};
+							Triangle2D tr = { points[0], points[1], points[2] };
+							switch (GE_RENDERING_STYLE)
+							{
+							case Engine3D::RENDERING_STYLES::STD_SHADED:
+								SDL_SetRenderDrawColor(renderer, t.R, t.G, t.B, 255.0f);
+								DrawFilledTriangle2D(renderer, tr);
+								break;
+							case Engine3D::RENDERING_STYLES::STD_POLY_SHADED:
+								SDL_SetRenderDrawColor(renderer, t.R, t.G, t.B, 255.0f);
+								DrawFilledTriangle2D(renderer, tr);
+								SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+								DrawTriangle2D(renderer, tr);
+								break;
+							case Engine3D::RENDERING_STYLES::DEBUG_DRAW_ONLY_POLYGONS:
+								SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+								DrawTriangle2D(renderer, tr);
+								break;
+							default:
+								break;
+							}
 						}
 					}
 				}
@@ -566,18 +584,22 @@ private:
 		}
 		case SDL_SCANCODE_UP: {
 			printf("Tapped SDL_SCANCODE_UP\n");
+			GE_DRAW_LIST.obj.front().moveBy({ 0, 0, 1 });
 			break;
 		}
 		case SDL_SCANCODE_DOWN: {
 			printf("Tapped SDL_SCANCODE_DOWN\n");
+			GE_DRAW_LIST.obj.front().moveBy({ 0, 0, -1 });
 			break;
 		}
 		case SDL_SCANCODE_LEFT: {
 			printf("Tapped SDL_SCANCODE_LEFT\n");
+			GE_DRAW_LIST.obj.front().moveBy({ 1, 0, 0 });
 			break;
 		}
 		case SDL_SCANCODE_RIGHT: {
 			printf("Tapped SDL_SCANCODE_RIGHT\n");
+			GE_DRAW_LIST.obj.front().moveBy({ -1, 0, 0 });
 			break;
 		}
 		default:
@@ -739,6 +761,17 @@ private:
 		};
 	}
 
+	void initSelectorBox() {
+		GE_Object sBox;
+		sBox.mesh = GE_MESHES.MESH_CUBE;
+		sBox.setColor(250.0f, 211.0f, 0.0f, 255.0f);
+		GE_DRAW_LIST.obj.push_back(sBox);
+
+		//GE_Object sBox2;
+		//sBox2.mesh = GE_MESHES.MESH_CUBE;
+		//GE_DRAW_LIST.obj.push_back(sBox2);
+	}
+
 	ERROR_CODES initEngine() {
 		if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 			return ERROR_CODES::SDL2_INIT_ERROR;
@@ -760,6 +793,8 @@ private:
 
 		initMeshes();
 		printf("Initialized meshes!\n");
+
+		initSelectorBox();
 
 		return ERROR_CODES::ZERO;
 	}

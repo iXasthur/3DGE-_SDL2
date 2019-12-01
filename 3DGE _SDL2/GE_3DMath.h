@@ -182,7 +182,7 @@ Matrix4 Matrix4_PointAt(vec3 &pos, vec3 &target, vec3 &up)
 
 }
 
-Matrix4 Matrix_QuickInverse(Matrix4 &m) // Only for Rotation/Translation Matrixes
+Matrix4 Matrix4_QuickInverse(Matrix4 &m) // Only for Rotation/Translation Matrixes
 {
 	Matrix4 matrix;
 	matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
