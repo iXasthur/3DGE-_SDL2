@@ -28,6 +28,20 @@ private:
 	};
 	ERROR_CODES GE_ERROR_CODE = ERROR_CODES::ZERO;
 
+	enum class KEYBOARD_CONTROL_TYPES {
+		ALLOW_SCENE_EDITING,
+		ALLOW_OBJECT_EDITING,
+		ALLOW_CAMERA_CONTROL
+	};
+	KEYBOARD_CONTROL_TYPES GE_CURRENT_KEYBOARD_CONTROL = KEYBOARD_CONTROL_TYPES::ALLOW_CAMERA_CONTROL;
+
+	enum class RENDERING_STYLES {
+		STD_SHADED,
+		STD_POLY_SHADED,
+		DEBUG_DRAW_ONLY_POLYGONS
+	};
+	RENDERING_STYLES GE_RENDERING_STYLE = RENDERING_STYLES::STD_POLY_SHADED;
+
 	struct vec3 {
 		float x, y, z;
 	};
@@ -74,8 +88,6 @@ private:
 	Mesh MESH_CUBE;
 	Matrix4 matProj;
 	Camera MainCamera;
-
-	bool DEBUG_DRAW_POLYGONS = true;
 
 	const char title[4] = "^_^";
 	const int FRAMES_PER_SECOND = 120;
@@ -701,16 +713,99 @@ private:
 									{ t.p[2].x,t.p[2].y }
 						};
 						Triangle2D tr = { points[0], points[1], points[2] };
-						SDL_SetRenderDrawColor(renderer, t.R, t.G, t.B, 255.0f);
-						DrawFilledTriangle2D(renderer, tr);
 
-						if (DEBUG_DRAW_POLYGONS) {
+						switch (GE_RENDERING_STYLE)
+						{
+						case Engine3D::RENDERING_STYLES::STD_SHADED:
+							SDL_SetRenderDrawColor(renderer, t.R, t.G, t.B, 255.0f);
+							DrawFilledTriangle2D(renderer, tr);
+							break;
+						case Engine3D::RENDERING_STYLES::STD_POLY_SHADED:
+							SDL_SetRenderDrawColor(renderer, t.R, t.G, t.B, 255.0f);
+							DrawFilledTriangle2D(renderer, tr);
 							SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 							DrawTriangle2D(renderer, tr);
+							break;
+						case Engine3D::RENDERING_STYLES::DEBUG_DRAW_ONLY_POLYGONS:
+							SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+							DrawTriangle2D(renderer, tr);
+							break;
+						default:
+							break;
 						}
 					}
 				}
 			}
+		}
+	}
+
+	void CameraMovementHandle(SDL_Scancode scancode) {
+		float offset = 10.0f / (float)FRAMES_PER_SECOND;
+		printf("CameraMovementHandle->");
+		switch (scancode) {
+			// WASD
+		case SDL_SCANCODE_W: {
+			printf("Tapped SDL_SCANCODE_W\n");
+			MainCamera.position.z += offset;
+			break;
+		}
+		case SDL_SCANCODE_A: {
+			printf("Tapped SDL_SCANCODE_A\n");
+			MainCamera.position.x += offset;
+			break;
+		}
+		case SDL_SCANCODE_S: {
+			printf("Tapped SDL_SCANCODE_S\n");
+			MainCamera.position.z -= offset;
+			break;
+		}
+		case SDL_SCANCODE_D: {
+			printf("Tapped SDL_SCANCODE_D\n");
+			MainCamera.position.x -= offset;
+			break;
+		}
+		case SDL_SCANCODE_SPACE: {
+			printf("Tapped SDL_SCANCODE_SPACE\n");
+			MainCamera.position.y += offset;
+			break;
+		}
+		case SDL_SCANCODE_X: {
+			printf("Tapped SDL_SCANCODE_X\n");
+			MainCamera.position.y -= offset;
+			break;
+		}
+		case SDL_SCANCODE_UP: {
+			printf("Tapped SDL_SCANCODE_UP\n");
+			MainCamera.fXRotation -= offset;
+			break;
+		}
+		case SDL_SCANCODE_DOWN: {
+			printf("Tapped SDL_SCANCODE_DOWN\n");
+			MainCamera.fXRotation += offset;
+			break;
+		}
+		case SDL_SCANCODE_LEFT: {
+			printf("Tapped SDL_SCANCODE_LEFT\n");
+			MainCamera.fYRotation -= offset;
+			break;
+		}
+		case SDL_SCANCODE_RIGHT: {
+			printf("Tapped SDL_SCANCODE_RIGHT\n");
+			MainCamera.fYRotation += offset;
+			break;
+		}
+		case SDL_SCANCODE_R: {
+			printf("Tapped SDL_SCANCODE_R\n");
+			MainCamera.fXRotation = 0;
+			MainCamera.fYRotation = 0;
+			MainCamera.position.x = 0;
+			MainCamera.position.y = 2;
+			MainCamera.position.z = 2;
+			break;
+		}
+		default:
+			printf("Tapped untreated key: %d\n", scancode);
+			break;
 		}
 	}
 
@@ -728,68 +823,17 @@ private:
 				}
 
 				if (windowEvent.type == SDL_KEYDOWN) {
-					float offset = 10.0f/(float)FRAMES_PER_SECOND;
-					switch (windowEvent.key.keysym.scancode) {
-						// WASD
-						case SDL_SCANCODE_W: {
-							printf("Tapped SDL_SCANCODE_W\n");
-							MainCamera.position.z += offset;
-							break;
-						}
-						case SDL_SCANCODE_A: {
-							printf("Tapped SDL_SCANCODE_A\n");
-							MainCamera.position.x += offset;
-							break;
-						}
-						case SDL_SCANCODE_S: {
-							printf("Tapped SDL_SCANCODE_S\n");
-							MainCamera.position.z -= offset;
-							break;
-						}
-						case SDL_SCANCODE_D: {
-							printf("Tapped SDL_SCANCODE_D\n");
-							MainCamera.position.x -= offset;
-							break;
-						}
-						case SDL_SCANCODE_SPACE: {
-							printf("Tapped SDL_SCANCODE_SPACE\n");
-							MainCamera.position.y += offset;
-							break;
-						}
-						case SDL_SCANCODE_X: {
-							printf("Tapped SDL_SCANCODE_X\n");
-							MainCamera.position.y -= offset;
-							break;
-						}
-						case SDL_SCANCODE_UP: {
-							printf("Tapped SDL_SCANCODE_UP\n");
-							MainCamera.fXRotation += offset;
-							break;
-						}
-						case SDL_SCANCODE_DOWN: {
-							printf("Tapped SDL_SCANCODE_DOWN\n");
-							MainCamera.fXRotation -= offset;
-							break;
-						}
-						case SDL_SCANCODE_LEFT: {
-							printf("Tapped SDL_SCANCODE_LEFT\n");
-							MainCamera.fYRotation -= offset;
-							break;
-						}
-						case SDL_SCANCODE_RIGHT: {
-							printf("Tapped SDL_SCANCODE_RIGHT\n");
-							MainCamera.fYRotation += offset;
-							break;
-						}
-						case SDL_SCANCODE_R: {
-							printf("Tapped SDL_SCANCODE_R\n");
-							MainCamera.fXRotation = 0;
-							MainCamera.fYRotation = 0;
-							MainCamera.position.x = 0;
-							MainCamera.position.y = 2;
-							MainCamera.position.z = 2;
-							break;
-						}
+					switch (GE_CURRENT_KEYBOARD_CONTROL)
+					{
+					case Engine3D::KEYBOARD_CONTROL_TYPES::ALLOW_SCENE_EDITING:
+						break;
+					case Engine3D::KEYBOARD_CONTROL_TYPES::ALLOW_OBJECT_EDITING:
+						break;
+					case Engine3D::KEYBOARD_CONTROL_TYPES::ALLOW_CAMERA_CONTROL:
+						CameraMovementHandle(windowEvent.key.keysym.scancode);
+						break;
+					default:
+						break;
 					}
 				}
 			}
