@@ -36,6 +36,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		51121D252398DC9400D90B8D /* 3DGE _SDL2.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "3DGE _SDL2.entitlements"; sourceTree = "<group>"; };
 		518693A5235B8EB200BA67BD /* 3DGE _SDL2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "3DGE _SDL2"; sourceTree = BUILT_PRODUCTS_DIR; };
 		518693A8235B8EB200BA67BD /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		518693B0235B8F3000BA67BD /* libSDL2-2.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libSDL2-2.0.0.dylib"; path = "../../../../../../usr/local/Cellar/sdl2/2.0.10/lib/libSDL2-2.0.0.dylib"; sourceTree = "<group>"; };
@@ -74,6 +75,7 @@
 		518693A7235B8EB200BA67BD /* 3DGE _SDL2 */ = {
 			isa = PBXGroup;
 			children = (
+				51121D252398DC9400D90B8D /* 3DGE _SDL2.entitlements */,
 				518693A8235B8EB200BA67BD /* main.cpp */,
 				51DDC7EF2398D31300DECBD0 /* GE_3DMath.h */,
 			);
@@ -115,7 +117,7 @@
 		5186939D235B8EB200BA67BD /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1110;
+				LastUpgradeCheck = 1120;
 				ORGANIZATIONNAME = "Mikhail Kavaleuski";
 				TargetAttributes = {
 					518693A4235B8EB200BA67BD = {
@@ -267,6 +269,8 @@
 		518693AD235B8EB200BA67BD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "3DGE _SDL2/3DGE _SDL2.entitlements";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 2RFRHVPMQL;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -281,6 +285,8 @@
 		518693AE235B8EB200BA67BD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "3DGE _SDL2/3DGE _SDL2.entitlements";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 2RFRHVPMQL;
 				ENABLE_HARDENED_RUNTIME = YES;
