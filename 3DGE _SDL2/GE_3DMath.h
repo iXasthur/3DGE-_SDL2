@@ -1,6 +1,8 @@
 #ifndef GE_3DMATH_H
 #define GE_3DMATH_H
 
+#include <math.h>
+
 struct vec3 {
 	float x, y, z;
 };

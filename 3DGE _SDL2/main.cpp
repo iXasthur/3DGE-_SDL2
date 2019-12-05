@@ -95,8 +95,8 @@ private:
 		// pi -3.14159f
 		vec3 position = { 3, 4, 0 };
 		vec3 lookDirection = { 0, 0, 1 };
-		float fXRotation = 3.14159f / 6.0f;//3.14159f / 1000.0f;
-		float fYRotation = 3.14159f / 8.0f;;// 3.14159f / 4.0f;
+		float fXRotation = 3.14159f / 6.0f; //3.14159f / 1000.0f;
+		float fYRotation = 3.14159f / 8.0f; // 3.14159f / 4.0f;
 		float fFOV = 90.0f;
 		float fNear = 0.1f;
 		float fFar = 1000.0f;
@@ -141,7 +141,7 @@ private:
 		// Return signed shortest distance from point to plane, plane normal must be normalised
 		auto dist = [&](vec3 &p)
 		{
-			vec3 n = Vector3_Normalize(p);
+			//vec3 n = Vector3_Normalize(p);
 			return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - Vector3_DotProduct(plane_n, plane_p));
 		};
 
@@ -242,6 +242,8 @@ private:
 
 			return 2; // Return two newly formed triangles which form a quad
 		}
+        
+        return -1;
 	}
 
 	void updateScreenAndCameraProperties(SDL_Renderer *renderer) {
@@ -374,7 +376,9 @@ private:
 
 		vec3 upVector = { 0, 1, 0 };
 		vec3 targetVector = { 0, 0, 1 };
-		Matrix4 matCameraRot = Matrix4_MultiplyMatrix(Matrix4_MakeRotationX(MainCamera.fXRotation), Matrix4_MakeRotationY(MainCamera.fYRotation));
+        Matrix4 m1 = Matrix4_MakeRotationX(MainCamera.fXRotation);
+        Matrix4 m2 = Matrix4_MakeRotationY(MainCamera.fYRotation);
+		Matrix4 matCameraRot = Matrix4_MultiplyMatrix(m1, m2);
 		MainCamera.lookDirection = Matrix4_MultiplyVector(targetVector, matCameraRot);
 		targetVector = Vector3_Add(MainCamera.position, MainCamera.lookDirection);
 		Matrix4 matCamera = Matrix4_PointAt(MainCamera.position, targetVector, upVector);
@@ -503,7 +507,7 @@ private:
 
 						// Add initial triangle
 						listTriangles.push_back(triToRaster);
-						int nNewTriangles = 1;
+						unsigned long nNewTriangles = 1;
 
 						for (int p = 0; p < 4; p++)
 						{
@@ -544,9 +548,9 @@ private:
 						for (Triangle &t : listTriangles)
 						{
 							SDL_Point points[3] = {
-										{ t.p[0].x,t.p[0].y },
-										{ t.p[1].x,t.p[1].y },
-										{ t.p[2].x,t.p[2].y }
+										{ (int)t.p[0].x,(int)t.p[0].y },
+										{ (int)t.p[1].x,(int)t.p[1].y },
+										{ (int)t.p[2].x,(int)t.p[2].y }
 							};
 							Triangle2D tr = { points[0], points[1], points[2] };
 							switch (GE_RENDERING_STYLE)

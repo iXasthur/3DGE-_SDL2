@@ -39,6 +39,7 @@
 		518693A5235B8EB200BA67BD /* 3DGE _SDL2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "3DGE _SDL2"; sourceTree = BUILT_PRODUCTS_DIR; };
 		518693A8235B8EB200BA67BD /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		518693B0235B8F3000BA67BD /* libSDL2-2.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libSDL2-2.0.0.dylib"; path = "../../../../../../usr/local/Cellar/sdl2/2.0.10/lib/libSDL2-2.0.0.dylib"; sourceTree = "<group>"; };
+		51DDC7EF2398D31300DECBD0 /* GE_3DMath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GE_3DMath.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +75,7 @@
 			isa = PBXGroup;
 			children = (
 				518693A8235B8EB200BA67BD /* main.cpp */,
+				51DDC7EF2398D31300DECBD0 /* GE_3DMath.h */,
 			);
 			path = "3DGE _SDL2";
 			sourceTree = "<group>";
