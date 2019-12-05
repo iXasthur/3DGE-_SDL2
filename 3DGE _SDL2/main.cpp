@@ -696,8 +696,7 @@ private:
 				}
 
 				if (windowEvent.type == SDL_KEYDOWN) {
-					switch (GE_CURRENT_KEYBOARD_CONTROL)
-					{
+					switch (GE_CURRENT_KEYBOARD_CONTROL) {
 					case Engine3D::KEYBOARD_CONTROL_TYPES::ALLOW_SCENE_EDITING:
 						SceneEditingHandle(windowEvent.key.keysym.scancode);
 						break;
