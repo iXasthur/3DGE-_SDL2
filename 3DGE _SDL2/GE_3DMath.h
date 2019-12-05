@@ -36,6 +36,13 @@ float Vector3_Length(vec3 &v)
 	return sqrtf(Vector3_DotProduct(v, v));
 }
 
+bool Vector3_Equals(vec3 &v1, vec3 &v2) {
+	if (v1.x == v2.x && v1.y == v2.y && v1.z == v2.z){
+		return true;
+	}
+	return false;
+}
+
 vec3 Vector3_Normalize(vec3 &v) {
 	float l = Vector3_Length(v);
 	return { v.x / l, v.y / l, v.z / l };

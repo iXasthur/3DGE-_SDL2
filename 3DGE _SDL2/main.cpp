@@ -494,8 +494,10 @@ private:
 		std::vector<Triangle> vecTrianglesToRaster;
 
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
-			for (Triangle &tri : obj.mesh.polygons) {
-				FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+			if (!Vector3_Equals(obj.getPosition(), GE_DRAW_LIST.selectorBox.getPosition())) {
+				for (Triangle &tri : obj.mesh.polygons) {
+					FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+				}
 			}
 		}
 
@@ -619,7 +621,7 @@ private:
 		int index = -1;
 		int i = 0;
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
-			if (Vector3_Length(Vector3_Sub(obj.getPosition(), pos)) == 0) {
+			if (Vector3_Equals(obj.getPosition(), pos)) {
 				index = i;
 				break;
 			}
