@@ -496,24 +496,6 @@ private:
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
 			for (Triangle &tri : obj.mesh.polygons) {
 				FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
-
-					// Legacy rendering code
-					/*for (Triangle rTri : vecTrianglesToRaster) {
-						SDL_Point points[3] = {
-										{ rTri.p[0].x,rTri.p[0].y },
-										{ rTri.p[1].x,rTri.p[1].y },
-										{ rTri.p[2].x,rTri.p[2].y }
-						};
-						Triangle2D tr = { points[0], points[1], points[2] };
-						SDL_SetRenderDrawColor(renderer, dp * 255.0f, dp * 255.0f, dp * 255.0f, 255.0f);
-						DrawFilledTriangle2D(renderer, tr);
-
-						if (DEBUG_DRAW_POLYGONS) {
-							SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-							DrawTriangle2D(renderer, tr);
-						}
-					}*/
-
 			}
 		}
 
