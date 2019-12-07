@@ -106,7 +106,6 @@ private:
 		void moveTo(vec3 v) {
 			vec3 offset = Vector3_Sub(v, position);
 			moveBy(offset);
-			//printf("Moved block to %.2f %.2f %.2f\n", position.x, position.y, position.z);
 		}
 
 		void scaleBy(float k) {
@@ -129,6 +128,24 @@ private:
 				}
 			}
 			printf("Changed color to %.2f %.2f %.2f\n", R, G, B);
+		}
+
+		void hideSide(GE_MESH_SIDE_TYPE type) {
+			for (Mesh_Side &side : sides) {
+				if (side.type == type) {
+					side.hidden = true;
+					break;
+				}
+			}
+		}
+
+		void showSide(GE_MESH_SIDE_TYPE type) {
+			for (Mesh_Side &side : sides) {
+				if (side.type == type) {
+					side.hidden = false;
+					break;
+				}
+			}
 		}
 	};
 	
@@ -524,16 +541,20 @@ private:
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
 			if (!Vector3_Equals(obj.getPosition(), GE_DRAW_LIST.selectorBox.getPosition())) {
 				for (Mesh_Side &side : obj.sides) {
-					for (Triangle &tri : side.mesh.polygons) {
-						FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+					if (!side.hidden) {
+						for (Triangle &tri : side.mesh.polygons) {
+							FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+						}
 					}
 				}
 			}
 		}
 
 		for (Mesh_Side &side : GE_DRAW_LIST.selectorBox.sides) {
-			for (Triangle &tri : side.mesh.polygons) {
-				FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+			if (!side.hidden) {
+				for (Triangle &tri : side.mesh.polygons) {
+					FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+				}
 			}
 		}
 
@@ -624,20 +645,40 @@ private:
 
 	}
 
-	bool CheckIfBlockExists(vec3 pos) {
+	GE_Object* getGEObjectPointerByPos(vec3 pos) {
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
-			if (Vector3_Length(Vector3_Sub(obj.getPosition(),pos)) == 0) {
-				return true;
+			if (Vector3_Equals(obj.getPosition(), pos)) {
+				return &obj;
 			}
 		}
-		return false;
+		return nullptr;
+	}
+
+	void HideUnneededSidesByObj(GE_Object *obj) {
+		switch (obj->type) {
+		case GE_OBJECT_TYPE::CUBE: {
+			vec3 objPos = obj->getPosition();
+			GE_Object *neighbourObj;
+			std::vector<vec3> neighbourPositions;
+			neighbourPositions.push_back(Vector3_Add(objPos, { 1, 0, 0 }));
+			neighbourPositions.push_back(Vector3_Add(objPos, { 0, 1, 0 }));
+			neighbourPositions.push_back(Vector3_Add(objPos, { 0, 0, 1 }));
+			neighbourPositions.push_back(Vector3_Add(objPos, { -1, 0, 0 }));
+			neighbourPositions.push_back(Vector3_Add(objPos, { 0, -1, 0 }));
+			neighbourPositions.push_back(Vector3_Add(objPos, { 0, 0, -1 }));
+		}
+		default:
+			break;
+		}
 	}
 
 	void CreateBlockAtSelectorPosition() {
 		vec3 pos = GE_DRAW_LIST.selectorBox.getPosition();
-		if (!CheckIfBlockExists(pos)){
+		GE_Object *obj = getGEObjectPointerByPos(pos);
+		if (obj == nullptr){
 			GE_Object sBox = GE_STD_OBJECTS.CUBE;
 			sBox.moveTo(pos);
+			HideUnneededSidesByObj(&sBox);
 			GE_DRAW_LIST.obj.push_back(sBox);
 			printf("Created block at %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
 		} else {
@@ -647,6 +688,7 @@ private:
 	}
 
 	void RemoveBlockAtSelectorPosition() {
+		// Can't use getGEObjectPointerByPos() because we need to remove from vector by index
 		vec3 pos = GE_DRAW_LIST.selectorBox.getPosition();
 		int index = -1;
 		int i = 0;
