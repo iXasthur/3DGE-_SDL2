@@ -43,6 +43,21 @@ private:
 	};
 	RENDERING_STYLES GE_RENDERING_STYLE = RENDERING_STYLES::STD_SHADED;
 
+	enum class GE_OBJECT_TYPE {
+		UNDEFINED,
+		CUBE
+	};
+
+	enum class GE_MESH_SIDE_TYPE {
+		UNDEFINED,
+		SOUTH,
+		EAST,
+		NORTH,
+		WEST,
+		TOP,
+		BOTTOM
+	};
+
 
 	struct Triangle {
 		vec3 p[3];
@@ -59,11 +74,18 @@ private:
 		std::vector<Triangle> polygons; // First is always considered as a selector
 	};
 
+	struct Mesh_Side {
+		GE_MESH_SIDE_TYPE type = GE_MESH_SIDE_TYPE::UNDEFINED;
+		bool hidden = false;
+		Mesh mesh;
+	};
+
 	struct GE_Object {
 	private:
 		vec3 position = { 0, 0, 0 };
 	public:
-		Mesh mesh;
+		GE_OBJECT_TYPE type = GE_OBJECT_TYPE::UNDEFINED;
+		std::vector<Mesh_Side> sides;
 
 		vec3 getPosition() {
 			return position;
@@ -71,9 +93,11 @@ private:
 
 		void moveBy(vec3 v) {
 			position = Vector3_Add(position, v);
-			for (Triangle &tri : mesh.polygons) {
-				for (vec3 &p : tri.p) {
-					p = Vector3_Add(p, v);
+			for (Mesh_Side &side : sides) {
+				for (Triangle &tri : side.mesh.polygons) {
+					for (vec3 &p : tri.p) {
+						p = Vector3_Add(p, v);
+					}
 				}
 			}
 			printf("Moved block to %.2f %.2f %.2f\n", position.x, position.y, position.z);
@@ -86,19 +110,23 @@ private:
 		}
 
 		void scaleBy(float k) {
-			for (Triangle &tri : mesh.polygons) {
-				for (vec3 &p : tri.p) {
-					p = Vector3_Mul(p, k);
+			for (Mesh_Side &side : sides) {
+				for (Triangle &tri : side.mesh.polygons) {
+					for (vec3 &p : tri.p) {
+						p = Vector3_Mul(p, k);
+					}
 				}
 			}
 			printf("Scaled block by %.2f\n", k);
 		}
 
 		void setColor(float R, float G, float B) {
-			for (Triangle &tri : mesh.polygons) {
-				tri.R = R;
-				tri.G = G;
-				tri.B = B;
+			for (Mesh_Side &side : sides) {
+				for (Triangle &tri : side.mesh.polygons) {
+					tri.R = R;
+					tri.G = G;
+					tri.B = B;
+				}
 			}
 			printf("Changed color to %.2f %.2f %.2f\n", R, G, B);
 		}
@@ -121,10 +149,10 @@ private:
 		float fFar = 1000.0f;
 	};
 
-	struct GE_STD_MESHES {
-		Mesh MESH_CUBE;
+	struct GE_STD_OBJECT_TYPES {
+		GE_Object CUBE;
 	};
-	GE_STD_MESHES GE_MESHES;
+	GE_STD_OBJECT_TYPES GE_STD_OBJECTS;
 
 	Matrix4 matProj;
 	GE_Camera MainCamera;
@@ -495,14 +523,18 @@ private:
 
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
 			if (!Vector3_Equals(obj.getPosition(), GE_DRAW_LIST.selectorBox.getPosition())) {
-				for (Triangle &tri : obj.mesh.polygons) {
-					FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+				for (Mesh_Side &side : obj.sides) {
+					for (Triangle &tri : side.mesh.polygons) {
+						FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+					}
 				}
 			}
 		}
 
-		for (Triangle &tri : GE_DRAW_LIST.selectorBox.mesh.polygons) {
-			FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+		for (Mesh_Side &side : GE_DRAW_LIST.selectorBox.sides) {
+			for (Triangle &tri : side.mesh.polygons) {
+				FillTrianglesToRasterVector(vecTrianglesToRaster, tri, matWorld, matView);
+			}
 		}
 
 		sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](Triangle &t1, Triangle &t2)
@@ -604,9 +636,7 @@ private:
 	void CreateBlockAtSelectorPosition() {
 		vec3 pos = GE_DRAW_LIST.selectorBox.getPosition();
 		if (!CheckIfBlockExists(pos)){
-			GE_Object sBox;
-			sBox.mesh = GE_MESHES.MESH_CUBE;
-			sBox.setColor(255.0f, 255.0f, 255.0f);
+			GE_Object sBox = GE_STD_OBJECTS.CUBE;
 			sBox.moveTo(pos);
 			GE_DRAW_LIST.obj.push_back(sBox);
 			printf("Created block at %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
@@ -830,47 +860,66 @@ private:
 		}
 		SDL_DestroyRenderer(renderer);
 	}
-	
-	void initMeshes() {
-		GE_MESHES.MESH_CUBE.polygons = {
-			// CLOCKWISE DIRECTION
 
-			// SOUTH
-			{ 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f },
-			{ 0.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f },
+	void initStdCube() {
+		GE_Object buffObj;
+		Mesh_Side buffSide;
 
-			// EAST                                                      
-			{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f },
-			{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 0.0f, 1.0f },
+		buffObj.type = GE_OBJECT_TYPE::CUBE;
 
-			// NORTH                                                     
-			{ 1.0f, 0.0f, 1.0f,    1.0f, 1.0f, 1.0f,    0.0f, 1.0f, 1.0f },
-			{ 1.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 0.0f, 1.0f },
-
-			// WEST                                                      
-			{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 1.0f, 0.0f },
-			{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f },
-
-			// TOP                                                       
-			{ 0.0f, 1.0f, 0.0f,    0.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f },
-			{ 0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f },
-
-			// BOTTOM                                                    
-			{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
-			{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f },
-
+		buffSide.type = GE_MESH_SIDE_TYPE::SOUTH;
+		buffSide.mesh.polygons = {
+				{ 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f },
 		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::EAST;
+		buffSide.mesh.polygons = {
+				{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f },
+				{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 0.0f, 1.0f },
+		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::NORTH;
+		buffSide.mesh.polygons = {
+				{ 1.0f, 0.0f, 1.0f,    1.0f, 1.0f, 1.0f,    0.0f, 1.0f, 1.0f },
+				{ 1.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 0.0f, 1.0f },
+		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::WEST;
+		buffSide.mesh.polygons = {
+				{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 1.0f, 0.0f },
+				{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f },
+		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::TOP;
+		buffSide.mesh.polygons = {
+				{ 0.0f, 1.0f, 0.0f,    0.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f },
+				{ 0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f },
+		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::BOTTOM;
+		buffSide.mesh.polygons = {
+				{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
+				{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f },
+		};
+		buffObj.sides.push_back(buffSide);
+
+		GE_STD_OBJECTS.CUBE = buffObj;
+	}
+	
+	void initStdObjects() {
+		initStdCube();
 	}
 
 	void initSelectorBox() {
-		GE_Object sBox;
-		sBox.mesh = GE_MESHES.MESH_CUBE;
+		GE_Object sBox = GE_STD_OBJECTS.CUBE;
 		sBox.setColor(250.0f, 211.0f, 0.0f);
 		GE_DRAW_LIST.selectorBox = sBox;
-
-		//GE_Object sBox2;
-		//sBox2.mesh = GE_MESHES.MESH_CUBE;
-		//GE_DRAW_LIST.obj.push_back(sBox2);
 	}
 
 	ERROR_CODES initEngine() {
@@ -892,7 +941,7 @@ private:
 			return ERROR_CODES::WINDOW_INIT_ERROR;
 		};
 
-		initMeshes();
+		initStdObjects();
 		printf("Initialized meshes!\n");
 
 		initSelectorBox();
@@ -937,8 +986,7 @@ public:
 
 
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	Engine3D Engine(800, 600);
 	Engine.startScene();
     return 0;
