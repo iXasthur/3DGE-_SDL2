@@ -58,12 +58,21 @@ private:
 		BOTTOM
 	};
 
+	struct GE_Color {
+		float R;
+		float G;
+		float B;
+	};
+
+	struct Colors{
+		GE_Color WHITE = { 255.0f, 255.0f, 255.0f };
+		GE_Color YELLOW = { 250.0f, 211.0f, 0.0f };
+	};
+	Colors GE_COLORS;
 
 	struct Triangle {
 		vec3 p[3];
-		float R = 255.0f;
-		float G = 255.0f;
-		float B = 255.0f;
+		GE_Color color = { 255.0f, 255.0f, 255.0f };
 	};
 
 	struct Triangle2D {
@@ -119,15 +128,16 @@ private:
 			printf("Scaled block by %.2f\n", k);
 		}
 
-		void setColor(float R, float G, float B) {
+		void setColor(GE_Color _color) {
 			for (Mesh_Side &side : sides) {
 				for (Triangle &tri : side.mesh.polygons) {
-					tri.R = R;
+					/*tri.R = R;
 					tri.G = G;
-					tri.B = B;
+					tri.B = B;*/
+					tri.color = _color;
 				}
 			}
-			printf("Changed color to %.2f %.2f %.2f\n", R, G, B);
+			printf("Changed color to %.2f %.2f %.2f\n", _color.R, _color.G, _color.B);
 		}
 
 		void hideSide(GE_MESH_SIDE_TYPE type) {
@@ -157,10 +167,10 @@ private:
 
 	struct GE_Camera {
 		// pi -3.14159f
-		vec3 position = { 3, 4, 0 };
-		vec3 lookDirection = { 0, 0, 1 };
-		float fXRotation = 3.14159f / 6.0f; //3.14159f / 1000.0f;
-		float fYRotation = 3.14159f / 8.0f; // 3.14159f / 4.0f;
+		vec3 position = { 0.0f, 0.0f, 0.0f };
+		vec3 lookDirection = { 0.0f, 0.0f, 1.0f };
+		float fXRotation = 0.0f;
+		float fYRotation = 0.0f;
 		float fFOV = 90.0f;
 		float fNear = 0.1f;
 		float fFar = 1000.0f;
@@ -255,9 +265,10 @@ private:
 			// Copy appearance info to new triangle
 			/*out_tri1.col = in_tri.col;
 			out_tri1.sym = in_tri.sym;*/
-			out_tri1.R = in_tri.R;
+			/*out_tri1.R = in_tri.R;
 			out_tri1.G = in_tri.G;
-			out_tri1.B = in_tri.B;
+			out_tri1.B = in_tri.B;*/
+			out_tri1.color = in_tri.color;
 
 			// The inside point is valid, so keep that...
 			out_tri1.p[0] = *inside_points[0];
@@ -282,13 +293,15 @@ private:
 
 			out_tri2.col = in_tri.col;
 			out_tri2.sym = in_tri.sym;*/
-			out_tri1.R = in_tri.R;
+			/*out_tri1.R = in_tri.R;
 			out_tri1.G = in_tri.G;
-			out_tri1.B = in_tri.B;
+			out_tri1.B = in_tri.B;*/
+			out_tri1.color = in_tri.color;
 
-			out_tri2.R = in_tri.R;
+			/*out_tri2.R = in_tri.R;
 			out_tri2.G = in_tri.G;
-			out_tri2.B = in_tri.B;
+			out_tri2.B = in_tri.B;*/
+			out_tri2.color = in_tri.color;
 
 			// The first triangle consists of the two inside points and a new
 			// point determined by the location where one side of the triangle
@@ -421,9 +434,10 @@ private:
 		triTransformed.p[0] = Matrix4_MultiplyVector(tri.p[0], matWorld);
 		triTransformed.p[1] = Matrix4_MultiplyVector(tri.p[1], matWorld);
 		triTransformed.p[2] = Matrix4_MultiplyVector(tri.p[2], matWorld);
-		triTransformed.R = tri.R;
+		/*triTransformed.R = tri.R;
 		triTransformed.G = tri.G;
-		triTransformed.B = tri.B;
+		triTransformed.B = tri.B;*/
+		triTransformed.color = tri.color;
 
 		// Calculate triangle Normal
 		vec3 normal, line1, line2;
@@ -448,17 +462,18 @@ private:
 			if (dp < 0.1f) {
 				dp = 0.1f;
 			}
-			triTransformed.R = dp * triTransformed.R;
-			triTransformed.G = dp * triTransformed.G;
-			triTransformed.B = dp * triTransformed.B;
+			triTransformed.color.R = dp * triTransformed.color.R;
+			triTransformed.color.G = dp * triTransformed.color.G;
+			triTransformed.color.B = dp * triTransformed.color.B;
 
 			// Convert World Space --> View Space
 			triViewed.p[0] = Matrix4_MultiplyVector(triTransformed.p[0], matView);
 			triViewed.p[1] = Matrix4_MultiplyVector(triTransformed.p[1], matView);
 			triViewed.p[2] = Matrix4_MultiplyVector(triTransformed.p[2], matView);
-			triViewed.R = triTransformed.R;
+			/*triViewed.R = triTransformed.R;
 			triViewed.G = triTransformed.G;
-			triViewed.B = triTransformed.B;
+			triViewed.B = triTransformed.B;*/
+			triViewed.color = triTransformed.color;
 
 			int nClippedTriangles = 0;
 			Triangle clipped[2];
@@ -470,9 +485,10 @@ private:
 				triProjected.p[0] = Matrix4_MultiplyVector(clipped[n].p[0], matProj);
 				triProjected.p[1] = Matrix4_MultiplyVector(clipped[n].p[1], matProj);
 				triProjected.p[2] = Matrix4_MultiplyVector(clipped[n].p[2], matProj);
-				triProjected.R = clipped[n].R;
+				/*triProjected.R = clipped[n].R;
 				triProjected.G = clipped[n].G;
-				triProjected.B = clipped[n].B;
+				triProjected.B = clipped[n].B;*/
+				triProjected.color = clipped[n].color;
 
 				// X/Y are inverted so put them back
 				triProjected.p[0].x *= -1.0f;
@@ -624,11 +640,11 @@ private:
 				switch (GE_RENDERING_STYLE)
 				{
 				case Engine3D::RENDERING_STYLES::STD_SHADED:
-					SDL_SetRenderDrawColor(renderer, t.R, t.G, t.B, 255.0f);
+					SDL_SetRenderDrawColor(renderer, t.color.R, t.color.G, t.color.B, 255.0f);
 					DrawFilledTriangle2D(renderer, tr);
 					break;
 				case Engine3D::RENDERING_STYLES::STD_POLY_SHADED:
-					SDL_SetRenderDrawColor(renderer, t.R, t.G, t.B, 255.0f);
+					SDL_SetRenderDrawColor(renderer, t.color.R, t.color.G, t.color.B, 255.0f);
 					DrawFilledTriangle2D(renderer, tr);
 					SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 					DrawTriangle2D(renderer, tr);
@@ -825,6 +841,7 @@ private:
 		case SDL_SCANCODE_GRAVE: {
 			//printf("Tapped SDL_SCANCODE_GRAVE\n");
 			GE_CURRENT_KEYBOARD_CONTROL = Engine3D::KEYBOARD_CONTROL_TYPES::ALLOW_CAMERA_CONTROL;
+			break;
 		}
 		default:
 			printf("Tapped untreated key: %d\n", scancode);
@@ -913,6 +930,7 @@ private:
 		case SDL_SCANCODE_GRAVE: {
 			//printf("Tapped SDL_SCANCODE_GRAVE\n");
 			GE_CURRENT_KEYBOARD_CONTROL = Engine3D::KEYBOARD_CONTROL_TYPES::ALLOW_SCENE_EDITING;
+			break;
 		}
 		default:
 			printf("Tapped untreated key: %d\n", scancode);
@@ -1028,7 +1046,7 @@ private:
 
 	void initSelectorBox() {
 		GE_Object sBox = GE_STD_OBJECTS.CUBE;
-		sBox.setColor(250.0f, 211.0f, 0.0f);
+		sBox.setColor(GE_COLORS.YELLOW);
 		GE_DRAW_LIST.selectorBox = sBox;
 	}
 
