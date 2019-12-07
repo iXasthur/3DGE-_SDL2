@@ -45,6 +45,7 @@ private:
 
 	enum class GE_OBJECT_TYPE {
 		UNDEFINED,
+		SELECTOR,
 		CUBE
 	};
 
@@ -218,6 +219,7 @@ private:
 	};
 
 	struct GE_STD_OBJECT_TYPES {
+		GE_Object SELECTOR;
 		GE_Object CUBE;
 	};
 	GE_STD_OBJECT_TYPES GE_STD_OBJECTS;
@@ -596,7 +598,7 @@ private:
 		std::vector<Triangle> vecTrianglesToRaster;
 
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
-			if (!Vector3_Equals(obj.getPosition(), GE_DRAW_LIST.selectorBox.getPosition())) {
+			//if (!Vector3_Equals(obj.getPosition(), GE_DRAW_LIST.selectorBox.getPosition())) {
 				for (Mesh_Side &side : obj.sides) {
 					if (!side.hidden) {
 						for (Triangle &tri : side.mesh.polygons) {
@@ -604,7 +606,7 @@ private:
 						}
 					}
 				}
-			}
+			//}
 		}
 
 		for (Mesh_Side &side : GE_DRAW_LIST.selectorBox.sides) {
@@ -1048,6 +1050,141 @@ private:
 		SDL_DestroyRenderer(renderer);
 	}
 
+	void initStdSelector() {
+		GE_Object buffObj;
+		Mesh_Side buffSide;
+		buffObj.setObjType(GE_OBJECT_TYPE::SELECTOR);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::TOP;
+		buffSide.mesh.polygons = {
+				{  1.0f, 1.2f, 0.0f,   1.0f, 1.2f,  0.2f,   1.2f, 1.2f,  0.2f },
+				{  1.2f, 1.2f, 0.2f,   1.2f, 1.2f, -0.2f,   0.8f, 1.2f, -0.2f },
+				{  1.0f, 1.2f, 0.0f,   0.8f, 1.2f, -0.2f,   0.8f, 1.2f,  0.0f },
+
+				{  0.0f, 1.2f, 0.0f,  -0.2f, 1.2f,  0.2f,   0.0f, 1.2f,  0.2f },
+				{ -0.2f, 1.2f, 0.2f,   0.2f, 1.2f, -0.2f,  -0.2f, 1.2f, -0.2f },
+				{  0.0f, 1.2f, 0.0f,   0.2f, 1.2f,  0.0f,   0.2f, 1.2f, -0.2f },
+
+				{  0.0f, 1.2f, 0.8f,  -0.2f, 1.2f,  0.8f,   0.0f, 1.2f,  1.0f },
+				{ -0.2f, 1.2f, 0.8f,  -0.2f, 1.2f,  1.2f,   0.2f, 1.2f,  1.2f },
+				{  0.2f, 1.2f, 1.2f,   0.2f, 1.2f,  1.0f,   0.0f, 1.2f,  1.0f },
+
+				{  1.0f, 1.2f, 1.0f,   0.8f, 1.2f,  1.0f,   0.8f, 1.2f,  1.2f },
+				{  0.8f, 1.2f, 1.2f,   1.2f, 1.2f,  1.2f,   1.2f, 1.2f,  0.8f },
+				{  1.2f, 1.2f, 0.8f,   1.0f, 1.2f,  0.8f,   1.0f, 1.2f,  1.0f },
+		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::EAST;
+		buffSide.mesh.polygons = {
+				{  1.2f, 0.0f, 1.0f,   1.2f,  0.2f,  1.0f,   1.2f,  0.2f,  1.2f },
+				{  1.2f, 0.2f, 1.2f,   1.2f, -0.2f,  1.2f,   1.2f, -0.2f,  0.8f },
+				{  1.2f, 0.0f, 1.0f,   1.2f, -0.2f,  0.8f,   1.2f,  0.0f,  0.8f },
+
+				{  1.2f, 0.0f,  0.0f,   1.2f,  0.2f, -0.2f,  1.2f,  0.2f,  0.0f },
+				{  1.2f, 0.2f, -0.2f,   1.2f, -0.2f,  0.2f,  1.2f, -0.2f, -0.2f },
+				{  1.2f, 0.0f,  0.0f,   1.2f,  0.0f,  0.2f,  1.2f, -0.2f,  0.2f },
+
+				{  1.2f, 0.8f,  0.0f,   1.2f, 0.8f, -0.2f,   1.2f, 1.0f,  0.0f },
+				{  1.2f, 0.8f, -0.2f,   1.2f, 1.2f, -0.2f,   1.2f, 1.2f,  0.2f },
+				{  1.2f, 1.2f,  0.2f,   1.2f, 1.0f,  0.2f,   1.2f, 1.0f,  0.0f },
+
+				{  1.2f, 1.0f, 1.0f,   1.2f, 1.0f,  0.8f,   1.2f, 1.2f,  0.8f },
+				{  1.2f, 1.2f, 0.8f,   1.2f, 1.2f,  1.2f,   1.2f, 0.8f,  1.2f },
+				{  1.2f, 0.8f, 1.2f,   1.2f, 0.8f,  1.0f,   1.2f, 1.0f,  1.0f },
+			
+
+		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::SOUTH;
+		buffSide.mesh.polygons = {
+			{  1.0f, 0.0f, -0.2f,    1.0f,  0.2f, -0.2f,    1.2f,  0.2f, -0.2f },
+			{  1.2f, 0.2f, -0.2f,    1.2f, -0.2f, -0.2f,    0.8f, -0.2f, -0.2f },
+			{  1.0f, 0.0f, -0.2f,    0.8f, -0.2f, -0.2f,    0.8f,  0.0f, -0.2f },
+
+			{  0.0f, 0.0f, -0.2f,   -0.2f,  0.2f, -0.2f,    0.0f,  0.2f, -0.2f },
+			{ -0.2f, 0.2f, -0.2f,    0.2f, -0.2f, -0.2f,   -0.2f, -0.2f, -0.2f },
+			{  0.0f, 0.0f, -0.2f,    0.2f,  0.0f, -0.2f,    0.2f, -0.2f, -0.2f },
+
+			{  0.0f, 0.8f, -0.2f,   -0.2f,  0.8f, -0.2f,    0.0f,  1.0f, -0.2f },
+			{ -0.2f, 0.8f, -0.2f,   -0.2f,  1.2f, -0.2f,    0.2f,  1.2f, -0.2f },
+			{  0.2f, 1.2f, -0.2f,    0.2f,  1.0f, -0.2f,    0.0f,  1.0f, -0.2f },
+
+			{  1.0f, 1.0f, -0.2f,    0.8f,  1.0f, -0.2f,    0.8f,  1.2f, -0.2f },
+			{  0.8f, 1.2f, -0.2f,    1.2f,  1.2f, -0.2f,    1.2f,  0.8f, -0.2f },
+			{  1.2f, 0.8f, -0.2f,    1.0f,  0.8f, -0.2f,    1.0f,  1.0f, -0.2f },
+
+
+		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::WEST;
+		buffSide.mesh.polygons = {
+			{  -0.2f, 1.0f, 1.0f,   -0.2f, 0.8f, 1.0f,   -0.2f,  0.8f,  1.2f },
+			{  -0.2f, 0.8f, 1.2f,   -0.2f, 1.2f, 1.2f,   -0.2f,  1.2f,  0.8f },
+			{  -0.2f, 1.2f, 0.8f,   -0.2f, 1.0f, 0.8f,   -0.2f,  1.0f,  1.0f },
+
+			{  -0.2f,  0.0f,  0.8f,   -0.2f, -0.2f,  0.8f,   -0.2f, 0.0f,  1.0f },
+			{  -0.2f, -0.2f,  0.8f,   -0.2f, -0.2f,  1.2f,   -0.2f, 0.2f,  1.2f },
+			{  -0.2f,  0.2f,  1.2f,   -0.2f,  0.2f,  1.0f,   -0.2f, 0.0f,  1.0f },
+
+			{  -0.2f, 1.0f, 0.0f,   -0.2f,  1.0f,  0.2f,   -0.2f,  1.2f,  0.2f },
+			{  -0.2f, 1.2f, 0.2f,   -0.2f,  1.2f, -0.2f,   -0.2f,  0.8f, -0.2f },
+			{  -0.2f, 1.0f, 0.0f,   -0.2f,  0.8f, -0.2f,   -0.2f,  0.8f,  0.0f },
+
+			{  -0.2f,  0.0f,  0.0f,   -0.2f, -0.2f,  0.2f,  -0.2f,  0.0f,  0.2f },
+			{  -0.2f, -0.2f,  0.2f,   -0.2f,  0.2f, -0.2f,  -0.2f, -0.2f, -0.2f },
+			{  -0.2f,  0.0f,  0.0f,   -0.2f,  0.2f,  0.0f,  -0.2f,  0.2f, -0.2f },
+
+		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::NORTH;
+		buffSide.mesh.polygons = {
+			{  0.0f, 1.0f, 1.2f,     0.2f,  1.0f, 1.2f,    0.2f,  1.2f,  1.2f },
+			{  0.2f, 1.2f, 1.2f,    -0.2f,  1.2f, 1.2f,   -0.2f,  0.8f,  1.2f },
+			{  0.0f, 1.0f, 1.2f,    -0.2f,  0.8f, 1.2f,    0.0f,  0.8f,  1.2f },
+
+			{  0.0f,  0.0f, 1.2f,     0.2f, -0.2f, 1.2f,   0.2f,  0.0f,  1.2f },
+			{  0.2f, -0.2f, 1.2f,    -0.2f,  0.2f, 1.2f,  -0.2f, -0.2f,  1.2f },
+			{  0.0f,  0.0f, 1.2f,     0.0f,  0.2f, 1.2f,  -0.2f,  0.2f,  1.2f },
+
+			{  0.8f,  0.0f, 1.2f,    0.8f, -0.2f, 1.2f,   1.0f,  0.0f,  1.2f },
+			{  0.8f, -0.2f, 1.2f,    1.2f, -0.2f, 1.2f,   1.2f,  0.2f,  1.2f },
+			{  1.2f,  0.2f, 1.2f,    1.0f,  0.2f, 1.2f,   1.0f,  0.0f,  1.2f },
+
+			{  1.0f, 1.0f, 1.2f,    1.0f,  0.8f, 1.2f,   1.2f,  0.8f,  1.2f },
+			{  1.2f, 0.8f, 1.2f,    1.2f,  1.2f, 1.2f,   0.8f,  1.2f,  1.2f },
+			{  0.8f, 1.2f, 1.2f,    0.8f,  1.0f, 1.2f,   1.0f,  1.0f,  1.2f },
+
+
+		};
+		buffObj.sides.push_back(buffSide);
+
+		buffSide.type = GE_MESH_SIDE_TYPE::BOTTOM;
+		buffSide.mesh.polygons = {
+			{  0.0f, -0.2f, 1.0f,     0.2f, -0.2f,  1.0f,    0.2f, -0.2f,  1.2f  },
+			{  0.2f, -0.2f, 1.2f,    -0.2f, -0.2f,  1.2f,   -0.2f, -0.2f,  0.8f  },
+			{  0.0f, -0.2f, 1.0f,    -0.2f, -0.2f,  0.8f,    0.0f, -0.2f,  0.8f  },
+
+			{  0.0f, -0.2f,  0.0f,    0.2f, -0.2f, -0.2f,    0.2f, -0.2f,  0.0f  },
+			{  0.2f, -0.2f, -0.2f,   -0.2f, -0.2f,  0.2f,   -0.2f, -0.2f, -0.2f  },
+			{  0.0f, -0.2f,  0.0f,    0.0f, -0.2f,  0.2f,   -0.2f, -0.2f,  0.2f  },
+
+			{  0.8f, -0.2f,  0.0f,    0.8f, -0.2f, -0.2f,    1.0f, -0.2f,  0.0f  },
+			{  0.8f, -0.2f, -0.2f,    1.2f, -0.2f, -0.2f,    1.2f, -0.2f,  0.2f  },
+			{  1.2f, -0.2f,  0.2f,    1.0f, -0.2f,  0.2f,    1.0f, -0.2f,  0.0f  },
+
+			{  1.0f, -0.2f, 1.0f,     1.0f, -0.2f,  0.8f,    1.2f, -0.2f,  0.8f  },
+			{  1.2f, -0.2f, 0.8f,     1.2f, -0.2f,  1.2f,    0.8f, -0.2f,  1.2f  },
+			{  0.8f, -0.2f, 1.2f,     0.8f, -0.2f,  1.0f,    1.0f, -0.2f,  1.0f  },
+		};
+		buffObj.sides.push_back(buffSide);
+
+		GE_STD_OBJECTS.SELECTOR = buffObj;
+	}
+
 	void initStdCube() {
 		GE_Object buffObj;
 		Mesh_Side buffSide;
@@ -1100,11 +1237,12 @@ private:
 	}
 	
 	void initStdObjects() {
+		initStdSelector();
 		initStdCube();
 	}
 	
-	void initSelectorBox() {
-		GE_Object sBox = GE_STD_OBJECTS.CUBE;
+	void initSelectorObject() {
+		GE_Object sBox = GE_STD_OBJECTS.SELECTOR;
 		sBox.setColor(GE_COLORS.getColorByType(Colors::Types::YELLOW), Colors::Types::YELLOW);
 		GE_DRAW_LIST.selectorBox = sBox;
 	}
@@ -1131,7 +1269,7 @@ private:
 		initStdObjects();
 		printf("Initialized std objects!\n");
 
-		initSelectorBox();
+		initSelectorObject();
 		printf("Initialized selector object!\n");
 
 		return ERROR_CODES::ZERO;
