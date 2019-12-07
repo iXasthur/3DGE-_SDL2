@@ -645,6 +645,16 @@ private:
 
 	}
 
+	void resetMainCamera() {
+		MainCamera.position = { 3, 4, 0 };
+		MainCamera.lookDirection = { 0, 0, 1 };
+		MainCamera.fXRotation = 3.14159f / 6.0f; //3.14159f / 1000.0f;
+		MainCamera.fYRotation = 3.14159f / 8.0f; // 3.14159f / 4.0f;
+		MainCamera.fFOV = 90.0f;
+		MainCamera.fNear = 0.1f;
+		MainCamera.fFar = 1000.0f;
+	}
+
 	GE_Object* getGEObjectPointerByPos(vec3 pos) {
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
 			if (Vector3_Equals(obj.getPosition(), pos)) {
@@ -654,18 +664,79 @@ private:
 		return nullptr;
 	}
 
-	void HideUnneededSidesByObj(GE_Object *obj) {
+	void ShowPreviouslyUnneededSidesByObj(GE_Object *obj) {
+		struct vec3_wd {
+			GE_MESH_SIDE_TYPE sideType = GE_MESH_SIDE_TYPE::UNDEFINED;
+			GE_MESH_SIDE_TYPE counterSideType = GE_MESH_SIDE_TYPE::UNDEFINED;
+			vec3 vec;
+		};
 		switch (obj->type) {
 		case GE_OBJECT_TYPE::CUBE: {
 			vec3 objPos = obj->getPosition();
-			GE_Object *neighbourObj;
-			std::vector<vec3> neighbourPositions;
-			neighbourPositions.push_back(Vector3_Add(objPos, { 1, 0, 0 }));
-			neighbourPositions.push_back(Vector3_Add(objPos, { 0, 1, 0 }));
-			neighbourPositions.push_back(Vector3_Add(objPos, { 0, 0, 1 }));
-			neighbourPositions.push_back(Vector3_Add(objPos, { -1, 0, 0 }));
-			neighbourPositions.push_back(Vector3_Add(objPos, { 0, -1, 0 }));
-			neighbourPositions.push_back(Vector3_Add(objPos, { 0, 0, -1 }));
+
+			std::vector<vec3_wd> neighbourPositions;
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::EAST,	GE_MESH_SIDE_TYPE::WEST,	 1,  0,  0 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::TOP, GE_MESH_SIDE_TYPE::BOTTOM,	 0,  1,  0 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::NORTH, GE_MESH_SIDE_TYPE::SOUTH,	 0,  0,  1 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::WEST, GE_MESH_SIDE_TYPE::EAST,	-1,  0,  0 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::BOTTOM, GE_MESH_SIDE_TYPE::TOP,	 0, -1,  0 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::SOUTH,GE_MESH_SIDE_TYPE::NORTH,	 0,  0, -1 });
+			for (vec3_wd &v_wd : neighbourPositions) {
+				v_wd.vec = Vector3_Add(v_wd.vec, objPos);
+				GE_Object *neighbourObj = getGEObjectPointerByPos(v_wd.vec);
+				if (neighbourObj != nullptr) {
+					switch (neighbourObj->type) {
+					case GE_OBJECT_TYPE::CUBE: {
+						neighbourObj->showSide(v_wd.counterSideType);
+						break;
+					}
+					default:
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+	void HideUnneededSidesByObj(GE_Object *obj) {
+		struct vec3_wd {
+			GE_MESH_SIDE_TYPE sideType = GE_MESH_SIDE_TYPE::UNDEFINED;
+			GE_MESH_SIDE_TYPE counterSideType = GE_MESH_SIDE_TYPE::UNDEFINED;
+			vec3 vec;
+		};
+		switch (obj->type) {
+		case GE_OBJECT_TYPE::CUBE: {
+			vec3 objPos = obj->getPosition();
+
+			std::vector<vec3_wd> neighbourPositions;
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::EAST,	GE_MESH_SIDE_TYPE::WEST,	 1,  0,  0 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::TOP, GE_MESH_SIDE_TYPE::BOTTOM,	 0,  1,  0 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::NORTH, GE_MESH_SIDE_TYPE::SOUTH,	 0,  0,  1 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::WEST, GE_MESH_SIDE_TYPE::EAST,	-1,  0,  0 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::BOTTOM, GE_MESH_SIDE_TYPE::TOP,	 0, -1,  0 });
+			neighbourPositions.push_back({ GE_MESH_SIDE_TYPE::SOUTH,GE_MESH_SIDE_TYPE::NORTH,	 0,  0, -1 });
+			for (vec3_wd &v_wd : neighbourPositions) {
+				v_wd.vec = Vector3_Add(v_wd.vec, objPos);
+				GE_Object *neighbourObj = getGEObjectPointerByPos(v_wd.vec);
+				if (neighbourObj != nullptr) {
+					switch (neighbourObj->type) {
+					case GE_OBJECT_TYPE::CUBE: {
+						neighbourObj->hideSide(v_wd.counterSideType);
+						obj->hideSide(v_wd.sideType);
+						break;
+					}
+					default:
+						break;
+					}
+				}
+			}
+
+			break;
 		}
 		default:
 			break;
@@ -700,6 +771,7 @@ private:
 			i++;
 		}
 		if (index >= 0)	{
+			ShowPreviouslyUnneededSidesByObj(&(GE_DRAW_LIST.obj[index]));
 			GE_DRAW_LIST.obj.erase(GE_DRAW_LIST.obj.begin() + index);
 			printf("Removed block at %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
 		} else {
@@ -835,11 +907,7 @@ private:
 		}
 		case SDL_SCANCODE_R: {
 			//printf("Tapped SDL_SCANCODE_R\n");
-			MainCamera.fXRotation = 0;
-			MainCamera.fYRotation = 0;
-			MainCamera.position.x = 0;
-			MainCamera.position.y = 2;
-			MainCamera.position.z = 2;
+			resetMainCamera();
 			break;
 		}
 		case SDL_SCANCODE_GRAVE: {
@@ -984,9 +1052,10 @@ private:
 		};
 
 		initStdObjects();
-		printf("Initialized meshes!\n");
+		printf("Initialized std objects!\n");
 
 		initSelectorBox();
+		printf("Initialized selector object!\n");
 
 		return ERROR_CODES::ZERO;
 	}
@@ -1018,6 +1087,8 @@ public:
 			printf("Unable to start scene! ERROR: %d\n", GE_ERROR_CODE);
 			return;
 		}
+		resetMainCamera();
+		printf("Reset camera!\n");
 		isRunning = true;
 		StartRenderLoop();
 	}
