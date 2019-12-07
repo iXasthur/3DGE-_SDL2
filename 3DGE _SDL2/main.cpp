@@ -64,9 +64,39 @@ private:
 		float B;
 	};
 
-	struct Colors{
+	struct Colors {
+	private:
 		GE_Color WHITE = { 255.0f, 255.0f, 255.0f };
 		GE_Color YELLOW = { 250.0f, 211.0f, 0.0f };
+		GE_Color BLUE = { 0.0f, 191.0f, 255.0f };
+		GE_Color VIOLET = { 138.0f, 43.0f, 226.0f };
+	public:
+		enum class Types {
+			WHITE,
+			YELLOW,
+			BLUE,
+			VIOLET
+		};
+		GE_Color getColorByType(Types t) {
+			// Invalid type will return WHITE
+			switch (t) {
+				case Types::WHITE: return WHITE; break;
+				case Types::YELLOW: return YELLOW; break;
+				case Types::BLUE: return BLUE; break;
+				case Types::VIOLET: return VIOLET; break;
+				default: return WHITE; break;
+			}
+		}
+		Types getColorTypeAfter(Types t) {
+			// Invalid type will return WHITE
+			switch (t) {
+				case Types::WHITE: return Types::YELLOW; break;
+				case Types::YELLOW: return Types::BLUE; break;
+				case Types::BLUE: return Types::VIOLET; break;
+				case Types::VIOLET: return Types::WHITE; break;
+				default: return Types::WHITE; break;
+			}
+		}
 	};
 	Colors GE_COLORS;
 
@@ -92,12 +122,25 @@ private:
 	struct GE_Object {
 	private:
 		vec3 position = { 0, 0, 0 };
+		GE_OBJECT_TYPE objType = GE_OBJECT_TYPE::UNDEFINED;
+		Colors::Types colorType = Colors::Types::WHITE;
 	public:
-		GE_OBJECT_TYPE type = GE_OBJECT_TYPE::UNDEFINED;
 		std::vector<Mesh_Side> sides;
 
 		vec3 getPosition() {
 			return position;
+		}
+
+		void setObjType(GE_OBJECT_TYPE t) {
+			objType = t;
+		}
+
+		GE_OBJECT_TYPE getObjType() {
+			return objType;
+		}
+
+		Colors::Types getColorType() {
+			return colorType;
 		}
 
 		void moveBy(vec3 v) {
@@ -128,12 +171,10 @@ private:
 			printf("Scaled block by %.2f\n", k);
 		}
 
-		void setColor(GE_Color _color) {
+		void setColor(GE_Color _color, Colors::Types _t) {
+			colorType = _t;
 			for (Mesh_Side &side : sides) {
 				for (Triangle &tri : side.mesh.polygons) {
-					/*tri.R = R;
-					tri.G = G;
-					tri.B = B;*/
 					tri.color = _color;
 				}
 			}
@@ -686,7 +727,7 @@ private:
 			GE_MESH_SIDE_TYPE counterSideType = GE_MESH_SIDE_TYPE::UNDEFINED;
 			vec3 vec;
 		};
-		switch (obj->type) {
+		switch (obj->getObjType()) {
 		case GE_OBJECT_TYPE::CUBE: {
 			vec3 objPos = obj->getPosition();
 
@@ -701,7 +742,7 @@ private:
 				v_wd.vec = Vector3_Add(v_wd.vec, objPos);
 				GE_Object *neighbourObj = getGEObjectPointerByPos(v_wd.vec);
 				if (neighbourObj != nullptr) {
-					switch (neighbourObj->type) {
+					switch (neighbourObj->getObjType()) {
 					case GE_OBJECT_TYPE::CUBE: {
 						neighbourObj->showSide(v_wd.counterSideType);
 						break;
@@ -725,7 +766,7 @@ private:
 			GE_MESH_SIDE_TYPE counterSideType = GE_MESH_SIDE_TYPE::UNDEFINED;
 			vec3 vec;
 		};
-		switch (obj->type) {
+		switch (obj->getObjType()) {
 		case GE_OBJECT_TYPE::CUBE: {
 			vec3 objPos = obj->getPosition();
 
@@ -740,7 +781,7 @@ private:
 				v_wd.vec = Vector3_Add(v_wd.vec, objPos);
 				GE_Object *neighbourObj = getGEObjectPointerByPos(v_wd.vec);
 				if (neighbourObj != nullptr) {
-					switch (neighbourObj->type) {
+					switch (neighbourObj->getObjType()) {
 					case GE_OBJECT_TYPE::CUBE: {
 						neighbourObj->hideSide(v_wd.counterSideType);
 						obj->hideSide(v_wd.sideType);
@@ -771,7 +812,6 @@ private:
 		} else {
 			printf("Aborted to created block at %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
 		}
-		
 	}
 
 	void RemoveBlockAtSelectorPosition() {
@@ -792,6 +832,20 @@ private:
 			printf("Removed block at %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
 		} else {
 			printf("Unable to remove block at %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
+		}
+	}
+
+	void ChangeBlockColorAtSelectorPosition() {
+		vec3 pos = GE_DRAW_LIST.selectorBox.getPosition();
+		GE_Object *obj = getGEObjectPointerByPos(pos);
+		if (obj != nullptr) {
+			Colors::Types newColorType = GE_COLORS.getColorTypeAfter(obj->getColorType());
+			GE_Color newColor = GE_COLORS.getColorByType(newColorType);
+			obj->setColor(newColor, newColorType);
+			printf("Changed block color at %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
+		}
+		else {
+			printf("Aborted to change block color at %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
 		}
 	}
 
@@ -836,6 +890,11 @@ private:
 		case SDL_SCANCODE_R: {
 			//printf("Tapped SDL_SCANCODE_R\n");
 			RemoveBlockAtSelectorPosition();
+			break;
+		}
+		case SDL_SCANCODE_E: {
+			//printf("Tapped SDL_SCANCODE_E\n");
+			ChangeBlockColorAtSelectorPosition();
 			break;
 		}
 		case SDL_SCANCODE_GRAVE: {
@@ -993,7 +1052,7 @@ private:
 		GE_Object buffObj;
 		Mesh_Side buffSide;
 
-		buffObj.type = GE_OBJECT_TYPE::CUBE;
+		buffObj.setObjType(GE_OBJECT_TYPE::CUBE);
 
 		buffSide.type = GE_MESH_SIDE_TYPE::SOUTH;
 		buffSide.mesh.polygons = {
@@ -1043,10 +1102,10 @@ private:
 	void initStdObjects() {
 		initStdCube();
 	}
-
+	
 	void initSelectorBox() {
 		GE_Object sBox = GE_STD_OBJECTS.CUBE;
-		sBox.setColor(GE_COLORS.YELLOW);
+		sBox.setColor(GE_COLORS.getColorByType(Colors::Types::YELLOW), Colors::Types::YELLOW);
 		GE_DRAW_LIST.selectorBox = sBox;
 	}
 
