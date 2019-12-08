@@ -733,7 +733,8 @@ private:
 
 	GE_Object* getGEObjectPointerByPos(vec3 pos) {
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
-			if (Vector3_Equals(obj.getPosition(), pos)) {
+            vec3 objPos = obj.getPosition();
+			if (Vector3_Equals(objPos, pos)) {
 				return &obj;
 			}
 		}
@@ -839,7 +840,8 @@ private:
 		int index = -1;
 		int i = 0;
 		for (GE_Object &obj : GE_DRAW_LIST.obj) {
-			if (Vector3_Equals(obj.getPosition(), pos)) {
+            vec3 objPos = obj.getPosition();
+			if (Vector3_Equals(objPos, pos)) {
 				index = i;
 				break;
 			}
