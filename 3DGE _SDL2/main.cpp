@@ -1019,12 +1019,12 @@ private:
 	}
 
 	void StartRenderLoop() {
-		SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+		SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 		Uint32 start;
 		SDL_Event windowEvent;
 		while (isRunning)
 		{
-			if (SDL_PollEvent(&windowEvent))
+			while (SDL_PollEvent(&windowEvent))
 			{
 				if (windowEvent.type == SDL_QUIT)
 				{
