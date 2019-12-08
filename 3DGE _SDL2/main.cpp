@@ -982,8 +982,8 @@ private:
 			MainCamera.fYRotation += offset;
 			break;
 		}
-		case SDL_SCANCODE_LEFTBRACKET: {
-			//printf("Tapped SDL_SCANCODE_RIGHT\n");
+		case SDL_SCANCODE_RIGHTBRACKET: {
+			//printf("Tapped SDL_SCANCODE_RIGHTBRACKET\n");
 			if (MainCamera.fFOV > 0 + 1)
 			{
 				MainCamera.fFOV--;
@@ -991,8 +991,8 @@ private:
 			printf("%f\n", MainCamera.fFOV);
 			break;
 		}
-		case SDL_SCANCODE_RIGHTBRACKET: {
-			//printf("Tapped SDL_SCANCODE_RIGHT\n");
+		case SDL_SCANCODE_LEFTBRACKET: {
+			//printf("Tapped SDL_SCANCODE_LEFTBRACKET\n");
 			if (MainCamera.fFOV < 180 - 1)
 			{
 				MainCamera.fFOV++;
