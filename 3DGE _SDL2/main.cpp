@@ -69,14 +69,22 @@ private:
 	private:
 		GE_Color WHITE = { 255.0f, 255.0f, 255.0f };
 		GE_Color YELLOW = { 250.0f, 211.0f, 0.0f };
-		GE_Color BLUE = { 0.0f, 191.0f, 255.0f };
+		GE_Color BLUE = { 32.0f, 5.0f, 137.0f };
+		GE_Color AQUA = { 0.0f, 191.0f, 255.0f };
 		GE_Color VIOLET = { 138.0f, 43.0f, 226.0f };
+		GE_Color PURPLE = { 223.0f, 0.0f, 254.0f };
+		GE_Color GREEN = { 62.0f, 255.0f, 21.0f };
+		GE_Color RED = { 254.0f, 0.0f, 0.0f };
 	public:
 		enum class Types {
 			WHITE,
 			YELLOW,
 			BLUE,
-			VIOLET
+			AQUA,
+			VIOLET,
+			PURPLE,
+			GREEN,
+			RED
 		};
 		GE_Color getColorByType(Types t) {
 			// Invalid type will return WHITE
@@ -84,7 +92,11 @@ private:
 				case Types::WHITE: return WHITE; break;
 				case Types::YELLOW: return YELLOW; break;
 				case Types::BLUE: return BLUE; break;
+				case Types::AQUA: return AQUA; break;
 				case Types::VIOLET: return VIOLET; break;
+				case Types::PURPLE: return PURPLE; break;
+				case Types::GREEN: return GREEN; break;
+				case Types::RED: return RED; break;
 				default: return WHITE; break;
 			}
 		}
@@ -93,8 +105,12 @@ private:
 			switch (t) {
 				case Types::WHITE: return Types::YELLOW; break;
 				case Types::YELLOW: return Types::BLUE; break;
-				case Types::BLUE: return Types::VIOLET; break;
-				case Types::VIOLET: return Types::WHITE; break;
+				case Types::BLUE: return Types::AQUA; break;
+				case Types::AQUA: return Types::VIOLET; break;
+				case Types::VIOLET: return Types::PURPLE; break;
+				case Types::PURPLE: return Types::GREEN; break;
+				case Types::GREEN: return Types::RED; break;
+				case Types::RED: return Types::WHITE; break;
 				default: return Types::WHITE; break;
 			}
 		}
@@ -229,6 +245,7 @@ private:
 
 	// Illumination
 	vec3 LightDirection = { 0.5f, 0.75f, -1.0f }; // LIGHT ORIGIN
+	vec3 ObjectMeshAnchor = { -0.5, -0.5, -0.5 }; // Required for objects to have (0,0,0) in middle of them
 
 	const char title[4] = "^_^";
 	const int FRAMES_PER_SECOND = 120;
@@ -707,8 +724,8 @@ private:
 	void resetMainCamera() {
 		MainCamera.position = { 3, 4, 0 };
 		MainCamera.lookDirection = { 0, 0, 1 };
-		MainCamera.fXRotation = 3.14159f / 6.0f; //3.14159f / 1000.0f;
-		MainCamera.fYRotation = 3.14159f / 8.0f; // 3.14159f / 4.0f;
+		MainCamera.fXRotation = M_PI / 6.0f; //3.14159f / 1000.0f;
+		MainCamera.fYRotation = M_PI / 8.0f; // 3.14159f / 4.0f;
 		MainCamera.fFOV = 90.0f;
 		MainCamera.fNear = 0.1f;
 		MainCamera.fFar = 1000.0f;
@@ -1050,188 +1067,196 @@ private:
 		SDL_DestroyRenderer(renderer);
 	}
 
-	void initStdSelector() {
-		GE_Object buffObj;
+	void CreateCubicFormByTopMesh(GE_Object &buffObj, Mesh &Mesh_TOP) {
 		Mesh_Side buffSide;
-		buffObj.setObjType(GE_OBJECT_TYPE::SELECTOR);
+
+		Matrix4 matRotX;
+		Matrix4 matRotY;
+		Matrix4 matRotZ;
+		Matrix4 matRot;
 
 		buffSide.type = GE_MESH_SIDE_TYPE::TOP;
-		buffSide.mesh.polygons = {
-				{  1.0f, 1.2f, 0.0f,   1.0f, 1.2f,  0.2f,   1.2f, 1.2f,  0.2f },
-				{  1.2f, 1.2f, 0.2f,   1.2f, 1.2f, -0.2f,   0.8f, 1.2f, -0.2f },
-				{  1.0f, 1.2f, 0.0f,   0.8f, 1.2f, -0.2f,   0.8f, 1.2f,  0.0f },
-
-				{  0.0f, 1.2f, 0.0f,  -0.2f, 1.2f,  0.2f,   0.0f, 1.2f,  0.2f },
-				{ -0.2f, 1.2f, 0.2f,   0.2f, 1.2f, -0.2f,  -0.2f, 1.2f, -0.2f },
-				{  0.0f, 1.2f, 0.0f,   0.2f, 1.2f,  0.0f,   0.2f, 1.2f, -0.2f },
-
-				{  0.0f, 1.2f, 0.8f,  -0.2f, 1.2f,  0.8f,   0.0f, 1.2f,  1.0f },
-				{ -0.2f, 1.2f, 0.8f,  -0.2f, 1.2f,  1.2f,   0.2f, 1.2f,  1.2f },
-				{  0.2f, 1.2f, 1.2f,   0.2f, 1.2f,  1.0f,   0.0f, 1.2f,  1.0f },
-
-				{  1.0f, 1.2f, 1.0f,   0.8f, 1.2f,  1.0f,   0.8f, 1.2f,  1.2f },
-				{  0.8f, 1.2f, 1.2f,   1.2f, 1.2f,  1.2f,   1.2f, 1.2f,  0.8f },
-				{  1.2f, 1.2f, 0.8f,   1.0f, 1.2f,  0.8f,   1.0f, 1.2f,  1.0f },
-		};
+		buffSide.mesh = Mesh_TOP;
+		matRotX = Matrix4_MakeRotationX(0);
+		matRotY = Matrix4_MakeRotationY(0);
+		matRotZ = Matrix4_MakeRotationZ(0);
+		matRot = Matrix4_MakeIdentity();
+		matRot = Matrix4_MultiplyMatrix(matRotX, matRotY); // Transform by rotation by X and Y
+		matRot = Matrix4_MultiplyMatrix(matRot, matRotZ); // Transform by rotation by Y
+		for (Triangle &polygon : buffSide.mesh.polygons) {
+			for (vec3 &v : polygon.p) {
+				v = Matrix4_MultiplyVector(v, matRot);
+			}
+		}
 		buffObj.sides.push_back(buffSide);
 
-		buffSide.type = GE_MESH_SIDE_TYPE::EAST;
-		buffSide.mesh.polygons = {
-				{  1.2f, 0.0f, 1.0f,   1.2f,  0.2f,  1.0f,   1.2f,  0.2f,  1.2f },
-				{  1.2f, 0.2f, 1.2f,   1.2f, -0.2f,  1.2f,   1.2f, -0.2f,  0.8f },
-				{  1.2f, 0.0f, 1.0f,   1.2f, -0.2f,  0.8f,   1.2f,  0.0f,  0.8f },
 
-				{  1.2f, 0.0f,  0.0f,   1.2f,  0.2f, -0.2f,  1.2f,  0.2f,  0.0f },
-				{  1.2f, 0.2f, -0.2f,   1.2f, -0.2f,  0.2f,  1.2f, -0.2f, -0.2f },
-				{  1.2f, 0.0f,  0.0f,   1.2f,  0.0f,  0.2f,  1.2f, -0.2f,  0.2f },
-
-				{  1.2f, 0.8f,  0.0f,   1.2f, 0.8f, -0.2f,   1.2f, 1.0f,  0.0f },
-				{  1.2f, 0.8f, -0.2f,   1.2f, 1.2f, -0.2f,   1.2f, 1.2f,  0.2f },
-				{  1.2f, 1.2f,  0.2f,   1.2f, 1.0f,  0.2f,   1.2f, 1.0f,  0.0f },
-
-				{  1.2f, 1.0f, 1.0f,   1.2f, 1.0f,  0.8f,   1.2f, 1.2f,  0.8f },
-				{  1.2f, 1.2f, 0.8f,   1.2f, 1.2f,  1.2f,   1.2f, 0.8f,  1.2f },
-				{  1.2f, 0.8f, 1.2f,   1.2f, 0.8f,  1.0f,   1.2f, 1.0f,  1.0f },
-			
-
-		};
-		buffObj.sides.push_back(buffSide);
-
-		buffSide.type = GE_MESH_SIDE_TYPE::SOUTH;
-		buffSide.mesh.polygons = {
-			{  1.0f, 0.0f, -0.2f,    1.0f,  0.2f, -0.2f,    1.2f,  0.2f, -0.2f },
-			{  1.2f, 0.2f, -0.2f,    1.2f, -0.2f, -0.2f,    0.8f, -0.2f, -0.2f },
-			{  1.0f, 0.0f, -0.2f,    0.8f, -0.2f, -0.2f,    0.8f,  0.0f, -0.2f },
-
-			{  0.0f, 0.0f, -0.2f,   -0.2f,  0.2f, -0.2f,    0.0f,  0.2f, -0.2f },
-			{ -0.2f, 0.2f, -0.2f,    0.2f, -0.2f, -0.2f,   -0.2f, -0.2f, -0.2f },
-			{  0.0f, 0.0f, -0.2f,    0.2f,  0.0f, -0.2f,    0.2f, -0.2f, -0.2f },
-
-			{  0.0f, 0.8f, -0.2f,   -0.2f,  0.8f, -0.2f,    0.0f,  1.0f, -0.2f },
-			{ -0.2f, 0.8f, -0.2f,   -0.2f,  1.2f, -0.2f,    0.2f,  1.2f, -0.2f },
-			{  0.2f, 1.2f, -0.2f,    0.2f,  1.0f, -0.2f,    0.0f,  1.0f, -0.2f },
-
-			{  1.0f, 1.0f, -0.2f,    0.8f,  1.0f, -0.2f,    0.8f,  1.2f, -0.2f },
-			{  0.8f, 1.2f, -0.2f,    1.2f,  1.2f, -0.2f,    1.2f,  0.8f, -0.2f },
-			{  1.2f, 0.8f, -0.2f,    1.0f,  0.8f, -0.2f,    1.0f,  1.0f, -0.2f },
-
-
-		};
+		buffSide.type = GE_MESH_SIDE_TYPE::BOTTOM;
+		buffSide.mesh = Mesh_TOP;
+		matRotX = Matrix4_MakeRotationX(0);
+		matRotY = Matrix4_MakeRotationY(0);
+		matRotZ = Matrix4_MakeRotationZ(M_PI);
+		matRot = Matrix4_MakeIdentity();
+		matRot = Matrix4_MultiplyMatrix(matRotX, matRotY); // Transform by rotation by X and Y
+		matRot = Matrix4_MultiplyMatrix(matRot, matRotZ); // Transform by rotation by Y
+		for (Triangle &polygon : buffSide.mesh.polygons) {
+			for (vec3 &v : polygon.p) {
+				v = Matrix4_MultiplyVector(v, matRot);
+			}
+		}
 		buffObj.sides.push_back(buffSide);
 
 		buffSide.type = GE_MESH_SIDE_TYPE::WEST;
-		buffSide.mesh.polygons = {
-			{  -0.2f, 1.0f, 1.0f,   -0.2f, 0.8f, 1.0f,   -0.2f,  0.8f,  1.2f },
-			{  -0.2f, 0.8f, 1.2f,   -0.2f, 1.2f, 1.2f,   -0.2f,  1.2f,  0.8f },
-			{  -0.2f, 1.2f, 0.8f,   -0.2f, 1.0f, 0.8f,   -0.2f,  1.0f,  1.0f },
+		buffSide.mesh = Mesh_TOP;
+		matRotX = Matrix4_MakeRotationX(0);
+		matRotY = Matrix4_MakeRotationY(0);
+		matRotZ = Matrix4_MakeRotationZ(M_PI / 2.0f);
+		matRot = Matrix4_MakeIdentity();
+		matRot = Matrix4_MultiplyMatrix(matRotX, matRotY); // Transform by rotation by X and Y
+		matRot = Matrix4_MultiplyMatrix(matRot, matRotZ); // Transform by rotation by Y
+		for (Triangle &polygon : buffSide.mesh.polygons) {
+			for (vec3 &v : polygon.p) {
+				v = Matrix4_MultiplyVector(v, matRot);
+			}
+		}
+		buffObj.sides.push_back(buffSide);
 
-			{  -0.2f,  0.0f,  0.8f,   -0.2f, -0.2f,  0.8f,   -0.2f, 0.0f,  1.0f },
-			{  -0.2f, -0.2f,  0.8f,   -0.2f, -0.2f,  1.2f,   -0.2f, 0.2f,  1.2f },
-			{  -0.2f,  0.2f,  1.2f,   -0.2f,  0.2f,  1.0f,   -0.2f, 0.0f,  1.0f },
-
-			{  -0.2f, 1.0f, 0.0f,   -0.2f,  1.0f,  0.2f,   -0.2f,  1.2f,  0.2f },
-			{  -0.2f, 1.2f, 0.2f,   -0.2f,  1.2f, -0.2f,   -0.2f,  0.8f, -0.2f },
-			{  -0.2f, 1.0f, 0.0f,   -0.2f,  0.8f, -0.2f,   -0.2f,  0.8f,  0.0f },
-
-			{  -0.2f,  0.0f,  0.0f,   -0.2f, -0.2f,  0.2f,  -0.2f,  0.0f,  0.2f },
-			{  -0.2f, -0.2f,  0.2f,   -0.2f,  0.2f, -0.2f,  -0.2f, -0.2f, -0.2f },
-			{  -0.2f,  0.0f,  0.0f,   -0.2f,  0.2f,  0.0f,  -0.2f,  0.2f, -0.2f },
-
-		};
+		buffSide.type = GE_MESH_SIDE_TYPE::EAST;
+		buffSide.mesh = Mesh_TOP;
+		matRotX = Matrix4_MakeRotationX(0);
+		matRotY = Matrix4_MakeRotationY(0);
+		matRotZ = Matrix4_MakeRotationZ(-M_PI / 2.0f);
+		matRot = Matrix4_MakeIdentity();
+		matRot = Matrix4_MultiplyMatrix(matRotX, matRotY); // Transform by rotation by X and Y
+		matRot = Matrix4_MultiplyMatrix(matRot, matRotZ); // Transform by rotation by Y
+		for (Triangle &polygon : buffSide.mesh.polygons) {
+			for (vec3 &v : polygon.p) {
+				v = Matrix4_MultiplyVector(v, matRot);
+			}
+		}
 		buffObj.sides.push_back(buffSide);
 
 		buffSide.type = GE_MESH_SIDE_TYPE::NORTH;
-		buffSide.mesh.polygons = {
-			{  0.0f, 1.0f, 1.2f,     0.2f,  1.0f, 1.2f,    0.2f,  1.2f,  1.2f },
-			{  0.2f, 1.2f, 1.2f,    -0.2f,  1.2f, 1.2f,   -0.2f,  0.8f,  1.2f },
-			{  0.0f, 1.0f, 1.2f,    -0.2f,  0.8f, 1.2f,    0.0f,  0.8f,  1.2f },
-
-			{  0.0f,  0.0f, 1.2f,     0.2f, -0.2f, 1.2f,   0.2f,  0.0f,  1.2f },
-			{  0.2f, -0.2f, 1.2f,    -0.2f,  0.2f, 1.2f,  -0.2f, -0.2f,  1.2f },
-			{  0.0f,  0.0f, 1.2f,     0.0f,  0.2f, 1.2f,  -0.2f,  0.2f,  1.2f },
-
-			{  0.8f,  0.0f, 1.2f,    0.8f, -0.2f, 1.2f,   1.0f,  0.0f,  1.2f },
-			{  0.8f, -0.2f, 1.2f,    1.2f, -0.2f, 1.2f,   1.2f,  0.2f,  1.2f },
-			{  1.2f,  0.2f, 1.2f,    1.0f,  0.2f, 1.2f,   1.0f,  0.0f,  1.2f },
-
-			{  1.0f, 1.0f, 1.2f,    1.0f,  0.8f, 1.2f,   1.2f,  0.8f,  1.2f },
-			{  1.2f, 0.8f, 1.2f,    1.2f,  1.2f, 1.2f,   0.8f,  1.2f,  1.2f },
-			{  0.8f, 1.2f, 1.2f,    0.8f,  1.0f, 1.2f,   1.0f,  1.0f,  1.2f },
-
-
-		};
+		buffSide.mesh = Mesh_TOP;
+		matRotX = Matrix4_MakeRotationX(M_PI / 2.0f);
+		matRotY = Matrix4_MakeRotationY(0);
+		matRotZ = Matrix4_MakeRotationZ(0);
+		matRot = Matrix4_MakeIdentity();
+		matRot = Matrix4_MultiplyMatrix(matRotX, matRotY); // Transform by rotation by X and Y
+		matRot = Matrix4_MultiplyMatrix(matRot, matRotZ); // Transform by rotation by Y
+		for (Triangle &polygon : buffSide.mesh.polygons) {
+			for (vec3 &v : polygon.p) {
+				v = Matrix4_MultiplyVector(v, matRot);
+			}
+		}
 		buffObj.sides.push_back(buffSide);
 
-		buffSide.type = GE_MESH_SIDE_TYPE::BOTTOM;
-		buffSide.mesh.polygons = {
-			{  0.0f, -0.2f, 1.0f,     0.2f, -0.2f,  1.0f,    0.2f, -0.2f,  1.2f  },
-			{  0.2f, -0.2f, 1.2f,    -0.2f, -0.2f,  1.2f,   -0.2f, -0.2f,  0.8f  },
-			{  0.0f, -0.2f, 1.0f,    -0.2f, -0.2f,  0.8f,    0.0f, -0.2f,  0.8f  },
-
-			{  0.0f, -0.2f,  0.0f,    0.2f, -0.2f, -0.2f,    0.2f, -0.2f,  0.0f  },
-			{  0.2f, -0.2f, -0.2f,   -0.2f, -0.2f,  0.2f,   -0.2f, -0.2f, -0.2f  },
-			{  0.0f, -0.2f,  0.0f,    0.0f, -0.2f,  0.2f,   -0.2f, -0.2f,  0.2f  },
-
-			{  0.8f, -0.2f,  0.0f,    0.8f, -0.2f, -0.2f,    1.0f, -0.2f,  0.0f  },
-			{  0.8f, -0.2f, -0.2f,    1.2f, -0.2f, -0.2f,    1.2f, -0.2f,  0.2f  },
-			{  1.2f, -0.2f,  0.2f,    1.0f, -0.2f,  0.2f,    1.0f, -0.2f,  0.0f  },
-
-			{  1.0f, -0.2f, 1.0f,     1.0f, -0.2f,  0.8f,    1.2f, -0.2f,  0.8f  },
-			{  1.2f, -0.2f, 0.8f,     1.2f, -0.2f,  1.2f,    0.8f, -0.2f,  1.2f  },
-			{  0.8f, -0.2f, 1.2f,     0.8f, -0.2f,  1.0f,    1.0f, -0.2f,  1.0f  },
-		};
+		buffSide.type = GE_MESH_SIDE_TYPE::SOUTH;
+		buffSide.mesh = Mesh_TOP;
+		matRotX = Matrix4_MakeRotationX(-M_PI / 2.0f);
+		matRotY = Matrix4_MakeRotationY(0);
+		matRotZ = Matrix4_MakeRotationZ(0);
+		matRot = Matrix4_MakeIdentity();
+		matRot = Matrix4_MultiplyMatrix(matRotX, matRotY); // Transform by rotation by X and Y
+		matRot = Matrix4_MultiplyMatrix(matRot, matRotZ); // Transform by rotation by Y
+		for (Triangle &polygon : buffSide.mesh.polygons) {
+			for (vec3 &v : polygon.p) {
+				v = Matrix4_MultiplyVector(v, matRot);
+			}
+		}
 		buffObj.sides.push_back(buffSide);
+	}
+
+	void initStdSelector() {
+		GE_Object buffObj;
+		buffObj.setObjType(GE_OBJECT_TYPE::SELECTOR);
+		
+		Mesh Mesh_TOP;
+		Mesh_TOP.polygons = {
+			// OUTER PART
+			{  1.0f, 1.2f, 0.0f,   1.0f, 1.2f,  0.2f,   1.2f, 1.2f,  0.2f },
+			{  1.2f, 1.2f, 0.2f,   1.2f, 1.2f, -0.2f,   0.8f, 1.2f, -0.2f },
+			{  1.0f, 1.2f, 0.0f,   0.8f, 1.2f, -0.2f,   0.8f, 1.2f,  0.0f },
+
+			{  0.0f, 1.2f, 0.0f,  -0.2f, 1.2f,  0.2f,   0.0f, 1.2f,  0.2f },
+			{ -0.2f, 1.2f, 0.2f,   0.2f, 1.2f, -0.2f,  -0.2f, 1.2f, -0.2f },
+			{  0.0f, 1.2f, 0.0f,   0.2f, 1.2f,  0.0f,   0.2f, 1.2f, -0.2f },
+
+			{  0.0f, 1.2f, 0.8f,  -0.2f, 1.2f,  0.8f,   0.0f, 1.2f,  1.0f },
+			{ -0.2f, 1.2f, 0.8f,  -0.2f, 1.2f,  1.2f,   0.2f, 1.2f,  1.2f },
+			{  0.2f, 1.2f, 1.2f,   0.2f, 1.2f,  1.0f,   0.0f, 1.2f,  1.0f },
+
+			{  1.0f, 1.2f, 1.0f,   0.8f, 1.2f,  1.0f,   0.8f, 1.2f,  1.2f },
+			{  0.8f, 1.2f, 1.2f,   1.2f, 1.2f,  1.2f,   1.2f, 1.2f,  0.8f },
+			{  1.2f, 1.2f, 0.8f,   1.0f, 1.2f,  0.8f,   1.0f, 1.2f,  1.0f },
+
+			// INNER PART
+			{  1.0f, 0.2f,  0.0f,   1.2f, 0.2f,  0.0f,   1.0f, 0.2f, -0.2f },
+			{  1.0f, 0.2f, -0.2f,   1.2f, 0.2f,  0.0f,   1.2f, 0.2f, -0.2f },
+
+			{  -0.2f, 0.2f,  0.0f,   0.0f, 0.2f,  0.0f,   -0.2f, 0.2f, -0.2f },
+			{  -0.2f, 0.2f, -0.2f,   0.0f, 0.2f,  0.0f,    0.0f, 0.2f, -0.2f },
+
+			{  -0.2f, 0.2f,  1.2f,   0.0f, 0.2f,  1.2f,   -0.2f, 0.2f, 1.0f },
+			{  -0.2f, 0.2f,  1.0f,   0.0f, 0.2f,  1.2f,    0.0f, 0.2f, 1.0f },
+
+			{  1.0f, 0.2f,  1.2f,   1.2f, 0.2f,  1.2f,   1.0f, 0.2f, 1.0f },
+			{  1.0f, 0.2f,  1.0f,   1.2f, 0.2f,  1.2f,   1.2f, 0.2f, 1.0f },
+
+
+			{  0.8f, 0.0f,  0.0f,   1.0f, 0.0f,  0.0f,   0.8f, 0.0f, -0.2f },
+			{  0.8f, 0.0f, -0.2f,   1.0f, 0.0f,  0.0f,   1.0f, 0.0f, -0.2f },
+
+			{  0.0f, 0.0f,  0.0f,   0.2f, 0.0f,  0.0f,   0.0f, 0.0f, -0.2f },
+			{  0.0f, 0.0f, -0.2f,   0.2f, 0.0f,  0.0f,   0.2f, 0.0f, -0.2f },
+
+			{  0.0f, 0.0f,  1.2f,   0.2f, 0.0f,  1.2f,   0.0f, 0.0f, 1.0f },
+			{  0.0f, 0.0f,  1.0f,   0.2f, 0.0f,  1.2f,   0.2f, 0.0f, 1.0f },
+
+			{  0.8f, 0.0f,  1.2f,   1.0f, 0.0f,  1.2f,   0.8f, 0.0f, 1.0f },
+			{  0.8f, 0.0f,  1.0f,   1.0f, 0.0f,  1.2f,   1.0f, 0.0f, 1.0f },
+
+
+			{  1.0f, 0.0f,  0.2f,   1.2f, 0.0f,  0.2f,   1.0f, 0.0f, 0.0f },
+			{  1.0f, 0.0f,  0.0f,   1.2f, 0.0f,  0.2f,   1.2f, 0.0f, 0.0f },
+
+			{  -0.2f, 0.0f,  0.2f,   0.0f, 0.0f,  0.2f,   -0.2f, 0.0f, 0.0f },
+			{  -0.2f, 0.0f,  0.0f,   0.0f, 0.0f,  0.2f,    0.0f, 0.0f, 0.0f },
+
+			{  -0.2f, 0.0f,  1.0f,   0.0f, 0.0f,  1.0f,   -0.2f, 0.0f, 0.8f },
+			{  -0.2f, 0.0f,  0.8f,   0.0f, 0.0f,  1.0f,    0.0f, 0.0f, 0.8f },
+
+			{  1.0f, 0.0f,  1.0f,   1.2f, 0.0f,  1.0f,   1.0f, 0.0f, 0.8f },
+			{  1.0f, 0.0f,  0.8f,   1.2f, 0.0f,  1.0f,   1.2f, 0.0f, 0.8f },
+		};
+
+		for (Triangle &polygon : Mesh_TOP.polygons) {
+			for (vec3 &v : polygon.p) {
+				v = Vector3_Add(v, ObjectMeshAnchor);
+			}
+		}
+
+		CreateCubicFormByTopMesh(buffObj, Mesh_TOP);
 
 		GE_STD_OBJECTS.SELECTOR = buffObj;
 	}
 
 	void initStdCube() {
 		GE_Object buffObj;
-		Mesh_Side buffSide;
-
 		buffObj.setObjType(GE_OBJECT_TYPE::CUBE);
 
-		buffSide.type = GE_MESH_SIDE_TYPE::SOUTH;
-		buffSide.mesh.polygons = {
-				{ 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f },
-				{ 0.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f },
-		};
-		buffObj.sides.push_back(buffSide);
-
-		buffSide.type = GE_MESH_SIDE_TYPE::EAST;
-		buffSide.mesh.polygons = {
-				{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f },
-				{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 0.0f, 1.0f },
-		};
-		buffObj.sides.push_back(buffSide);
-
-		buffSide.type = GE_MESH_SIDE_TYPE::NORTH;
-		buffSide.mesh.polygons = {
-				{ 1.0f, 0.0f, 1.0f,    1.0f, 1.0f, 1.0f,    0.0f, 1.0f, 1.0f },
-				{ 1.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 0.0f, 1.0f },
-		};
-		buffObj.sides.push_back(buffSide);
-
-		buffSide.type = GE_MESH_SIDE_TYPE::WEST;
-		buffSide.mesh.polygons = {
-				{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 1.0f, 0.0f },
-				{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f },
-		};
-		buffObj.sides.push_back(buffSide);
-
-		buffSide.type = GE_MESH_SIDE_TYPE::TOP;
-		buffSide.mesh.polygons = {
+		Mesh Mesh_TOP;
+		Mesh_TOP.polygons = {
 				{ 0.0f, 1.0f, 0.0f,    0.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f },
 				{ 0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f },
 		};
-		buffObj.sides.push_back(buffSide);
+		for (Triangle &polygon : Mesh_TOP.polygons) {
+			for (vec3 &v : polygon.p) {
+				v = Vector3_Add(v, ObjectMeshAnchor);
+			}
+		}
 
-		buffSide.type = GE_MESH_SIDE_TYPE::BOTTOM;
-		buffSide.mesh.polygons = {
-				{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
-				{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f },
-		};
-		buffObj.sides.push_back(buffSide);
+		CreateCubicFormByTopMesh(buffObj, Mesh_TOP);
 
 		GE_STD_OBJECTS.CUBE = buffObj;
 	}
